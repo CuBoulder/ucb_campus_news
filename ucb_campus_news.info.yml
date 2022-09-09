@@ -1,0 +1,4 @@
+name: 'UCB Campus News'
+type: module
+description: 'Provides a settings page, a field, a paragraph, and a block for UCB Campus News'
+core_version_requirement: '^8 || ^9'

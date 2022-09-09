@@ -1,0 +1,6 @@
+{
+	"name": "cu-boulder/ucb_campus_news",
+	"description": "Provides the UCB campus news block.",
+	"license": "GPL-2.0-or-later",
+	"type": "drupal-custom-module"
+}
