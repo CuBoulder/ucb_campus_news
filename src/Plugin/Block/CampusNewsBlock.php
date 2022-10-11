@@ -24,7 +24,11 @@ class CampusNewsBlock extends BlockBase {
 	 */
 	public function build() {
 		return [
-			'#data' => []
+			'#data' => [
+				'categories' => [],
+				'units' => [],
+				'audiences' =>[]
+			]
 		];
 	}
 
