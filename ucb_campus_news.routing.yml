@@ -1,9 +1,0 @@
-# https://www.drupal.org/docs/drupal-apis/routing-system/structure-of-routes
-
-ucb_campus_news.config:
-  path: '/admin/config/services/campusnews/config'
-  defaults:
-    _form: '\Drupal\ucb_campus_news\Form\UCBCampusNewsForm'
-    _title: 'UCB Campus News settings'
-  requirements:
-    _permission: 'adminster site configuration'
