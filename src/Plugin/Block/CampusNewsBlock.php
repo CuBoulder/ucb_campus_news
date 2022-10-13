@@ -24,9 +24,9 @@ class CampusNewsBlock extends BlockBase {
 	 */  
 	public function defaultConfiguration() {
 		return [ // Includes all categories, units, and audiences by default
-			'categories' => [0],
-			'units' => [0],
-			'audiences' => [0]
+			'filter_categories' => [],
+			'filter_units' => [],
+			'filter_audiences' => []
 		];
 	}
 
@@ -36,9 +36,9 @@ class CampusNewsBlock extends BlockBase {
 	public function build() {
 		return [ // Passes the include filters on to be avalaible in the template
 			'#data' => [
-				'categories' => $this->configuration['categories'],
-				'units' => $this->configuration['units'],
-				'audiences' => $this->configuration['audiences']
+				'categories' => $this->configuration['filter_categories'],
+				'units' => $this->configuration['filter_units'],
+				'audiences' => $this->configuration['filter_audiences']
 			]
 		];
 	}
@@ -65,7 +65,10 @@ class CampusNewsBlock extends BlockBase {
 	 * {@inheritdoc}
 	 */
 	public function blockSubmit($form, FormStateInterface $form_state) {
-		return parent::blockSubmit($form, $form_state);
+		$this->processFilterConfiguration($form_state, 'units');
+		$this->processFilterConfiguration($form_state, 'audiences');
+		$this->processFilterConfiguration($form_state, 'categories');
+		parent::blockSubmit($form, $form_state);
 	}
 
 	/**
@@ -75,54 +78,59 @@ class CampusNewsBlock extends BlockBase {
 	 *   The block configuration form render array.
 	 * @param string $label
 	 *   The display label of the filter.
-	 * @param string $machineName
+	 * @param string $filterName
 	 *   The machine name of the filter.
 	 */
-	private function addFilterToForm(array &$form, $label, $machineName) {
-		$form['filter_' . $machineName] = [
+	private function addFilterToForm(array &$form, $label, $filterName) {
+		$filterConfig = $this->configuration['filter_' . $filterName];
+		$form['filter_' . $filterName] = [
 			'#type' => 'details',
 			'#title' => $this->t($label),
 			'#open' => TRUE
 		];
-		$form['filter_' . $machineName]['filter_' . $machineName . '_show_all'] = [
+		$form['filter_' . $filterName]['show_all'] = [
 			'#type' => 'checkbox',
 			'#title' => $this->t('Show all'),
 			'#attributes' => [
 				'class' => [
-					'cuboulder-today-filter-form-show-all-' . $machineName
+					'cuboulder-today-filter-form-show-all-' . $filterName
 				]
 			],
-			'#default_value' => $this->configuration['categories'] ? in_array(0, $this->configuration[$machineName]) : TRUE
+			'#default_value' => in_array(0, $filterConfig)
 		];
-		$form['filter_' . $machineName]['filter_' . $machineName . '_container'] = [
+		$form['filter_' . $filterName]['container'] = [
 			'#type' => 'container',
 			'#attributes' => [
-				'class' => [
-					'cuboulder-today-filter-form-container cuboulder-today-filter-form-container-' . $machineName
-				]
+				'class' => ['cuboulder-today-filter-form-container'],
+				'id' => ['cuboulder_today_filter_form_container_' . $filterName]
 			],
 			'#states' => [
 				'invisible' => [
-					'input[name="settings[filter_' . $machineName . '][filter_' . $machineName . '_show_all]"]' => [
+					'input[name="settings[filter_' . $filterName . '][show_all]"]' => [
 						'checked' => TRUE
 					]
 				]
 			],
-			'#theme' => 'container__cuboulder_today_filter',
-			'#data' => [
-				'filterName' => $machineName
+			'loader' => [
+				'#theme' => 'cuboulder_today_filter_form_loader',
+				'#filterName' => $filterName,
+				'#filterConfig' => $filterConfig
 			],
-			'filter_' . $machineName . '_checkboxes' => [
+			'checkboxes' => [
 				'#type' => 'checkboxes',
-				'#attributes' => [
-					'class' => [
-						'cuboulder-today-filter-form-checkboxes cuboulder-today-filter-form-checkboxes-' . $machineName
-					]
-				],
 				'#options' => [
-					'__cuboulder_today_filter_loading__' => $this->t('Loading')
+					'cuboulder_today_filter_loading' => $this->t('Loading options')
 				]
 			]
 		];
+	}
+
+	private function processFilterConfiguration($form_state, $filterName) {
+		$values = $form_state->getValues()['filter_' . $filterName];
+		$idArray = [];
+		// \Drupal::logger('ucb_campus_news')->notice(\Drupal\Component\Serialization\Json::encode($values));
+		if($values['show_all'])
+			$idArray += [0];
+		$this->configuration['filter_' . $filterName] = $idArray;
 	}
 }

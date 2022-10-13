@@ -4,9 +4,11 @@
  */
 function ucb_campus_news_theme() {
 	return [
-		'container__cuboulder_today_filter' => [
-			'base hook' => 'container',
-			'variables' => ['data' => []]
+		'cuboulder_today_filter_form_loader' => [
+			'variables' => [
+				'filterName' => NULL,
+				'filterConfig' => []
+			]
 		]
 	];
 }
