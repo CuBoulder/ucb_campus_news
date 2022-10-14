@@ -9,8 +9,11 @@ namespace Drupal\ucb_campus_news\Plugin\Block;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * @Block(
@@ -18,28 +21,58 @@ use Drupal\Core\Session\AccountInterface;
  *   admin_label = @Translation("Campus News"),
  * )
  */
-class CampusNewsBlock extends BlockBase {
+class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterface {
+	/**
+	 * @var \Drupal\Core\Config\ImmutableConfig $moduleConfiguration
+	 *   Contains the configuration parameters for this module.
+	 */
+	private $moduleConfiguration;
+
+	/**
+	 * Constructs a CampusNewsBlock.
+	 * @param array $configuration
+	 * @param string $plugin_id
+	 * @param mixed $plugin_definition
+	 * @param \Drupal\Core\Config\ImmutableConfig $moduleConfiguration
+	 *   Contains the configuration parameters for this module.
+	 */
+	public function __construct(array $configuration, $plugin_id, $plugin_definition, ImmutableConfig $moduleConfiguration) {
+		parent::__construct($configuration, $plugin_id, $plugin_definition);
+		$this->moduleConfiguration = $moduleConfiguration;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+		return new static(
+			$configuration,
+			$plugin_id,
+			$plugin_definition,
+			$container->get('config.factory')->get('ucb_campus_news.configuration')
+		);
+  	}
+
 	/**
 	 * {@inheritdoc}
 	 */  
 	public function defaultConfiguration() {
-		return [ // Includes all categories, units, and audiences by default
-			'filter_categories' => [],
-			'filter_units' => [],
-			'filter_audiences' => []
-		];
+		return ['filters' => []];
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function build() {
-		return [ // Passes the include filters on to be avalaible in the template
-			'#data' => [
-				'categories' => $this->configuration['filter_categories'],
-				'units' => $this->configuration['filter_units'],
-				'audiences' => $this->configuration['filter_audiences']
-			]
+		$filters = [];
+		$blockFilterConfiguration = $this->configuration['filters'];
+		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
+		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
+			$blockFilterConfigurationItem = array_key_exists($filterMachineName, $blockFilterConfiguration) ? $blockFilterConfiguration[$filterMachineName] : ['enabled' => 0, 'includes' => []];
+			$filters[$filterMachineName] = $blockFilterConfigurationItem['enabled'] ? $blockFilterConfigurationItem['includes'] : [0];
+		}
+		return [
+			'#data' => ['filters' => $filters] // Passes the include filters on to be avalaible in the block's template
 		];
 	}
 
@@ -55,9 +88,9 @@ class CampusNewsBlock extends BlockBase {
 	 */
 	public function blockForm($form, FormStateInterface $form_state) {
 		$buildArray = parent::blockForm($form, $form_state);
-		$this->addFilterToForm($buildArray, 'Unit', 'units');
-		$this->addFilterToForm($buildArray, 'Audience', 'audiences');
-		$this->addFilterToForm($buildArray, 'Category', 'categories');
+		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
+		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem)
+			$this->addFilterToForm($buildArray, $moduleFilterConfigurationItem['label'], $moduleFilterConfigurationItem['path'], $filterMachineName);
 		return $buildArray;
 	}
 
@@ -65,9 +98,9 @@ class CampusNewsBlock extends BlockBase {
 	 * {@inheritdoc}
 	 */
 	public function blockSubmit($form, FormStateInterface $form_state) {
-		$this->processFilterConfiguration($form_state, 'units');
-		$this->processFilterConfiguration($form_state, 'audiences');
-		$this->processFilterConfiguration($form_state, 'categories');
+		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
+		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem)
+			$this->saveFilterConfiguration($form_state, $filterMachineName);
 		parent::blockSubmit($form, $form_state);
 	}
 
@@ -78,25 +111,28 @@ class CampusNewsBlock extends BlockBase {
 	 *   The block configuration form render array.
 	 * @param string $label
 	 *   The display label of the filter.
+	 * @param string $path
+	 *   The API path of the filter relative to the baseURI.
 	 * @param string $filterName
 	 *   The machine name of the filter.
 	 */
-	private function addFilterToForm(array &$form, $label, $filterName) {
-		$filterConfig = $this->configuration['filter_' . $filterName];
+	private function addFilterToForm(array &$form, $label, $path, $filterName) {
+		$blockFilterConfiguration = $this->configuration['filters'];
+		$blockFilterConfigurationItem = array_key_exists($filterName, $blockFilterConfiguration) ? $blockFilterConfiguration[$filterName] : ['enabled' => 0, 'includes' => []];
 		$form['filter_' . $filterName] = [
 			'#type' => 'details',
 			'#title' => $this->t($label),
 			'#open' => TRUE
 		];
-		$form['filter_' . $filterName]['show_all'] = [
+		$form['filter_' . $filterName]['enable_filter'] = [
 			'#type' => 'checkbox',
-			'#title' => $this->t('Show all'),
+			'#title' => $this->t('Filter by ' . $label),
 			'#attributes' => [
 				'class' => [
 					'cuboulder-today-filter-form-show-all-' . $filterName
 				]
 			],
-			'#default_value' => in_array(0, $filterConfig)
+			'#default_value' => $blockFilterConfigurationItem['enabled']
 		];
 		$form['filter_' . $filterName]['container'] = [
 			'#type' => 'container',
@@ -105,16 +141,20 @@ class CampusNewsBlock extends BlockBase {
 				'id' => ['cuboulder_today_filter_form_container_' . $filterName]
 			],
 			'#states' => [
-				'invisible' => [
-					'input[name="settings[filter_' . $filterName . '][show_all]"]' => [
+				'visible' => [
+					'input[name="settings[filter_' . $filterName . '][enable_filter]"]' => [
 						'checked' => TRUE
 					]
 				]
 			],
 			'loader' => [
 				'#theme' => 'cuboulder_today_filter_form_loader',
-				'#filterName' => $filterName,
-				'#filterConfig' => $filterConfig
+				'#data' => [
+					'label' => $label,
+					'path' => $path,
+					'machineName' => $filterName,
+					'configuration' => $blockFilterConfigurationItem
+				]
 			],
 			'checkboxes' => [
 				'#type' => 'checkboxes',
@@ -125,12 +165,13 @@ class CampusNewsBlock extends BlockBase {
 		];
 	}
 
-	private function processFilterConfiguration($form_state, $filterName) {
+	private function saveFilterConfiguration($form_state, $filterName) {
 		$values = $form_state->getValues()['filter_' . $filterName];
 		$idArray = [];
 		// \Drupal::logger('ucb_campus_news')->notice(\Drupal\Component\Serialization\Json::encode($values));
-		if($values['show_all'])
-			$idArray += [0];
-		$this->configuration['filter_' . $filterName] = $idArray;
+		$this->configuration['filters'][$filterName] = [
+			'enabled' => $values['enable_filter'],
+			'includes' => $idArray
+		];
 	}
 }

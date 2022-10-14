@@ -1,0 +1,13 @@
+siteURI: 'https://www.colorado.edu/today'
+baseURI: 'https://www.colorado.edu/today/syndicate/article'
+path: '/'
+filters:
+  categories:
+    label: 'Category'
+    path: '/options/category'
+  audiences:
+    label: 'Audience'
+    path: '/options/syndication_audience'
+  units:
+    label: 'Unit'
+    path: '/options/syndication_unit'

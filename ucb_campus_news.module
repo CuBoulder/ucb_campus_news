@@ -1,13 +1,18 @@
 <?php
+ 
  /**
  * Implements hook_theme().
  */
 function ucb_campus_news_theme() {
+	$config = \Drupal::config('ucb_campus_news.configuration');
 	return [
 		'cuboulder_today_filter_form_loader' => [
 			'variables' => [
-				'filterName' => NULL,
-				'filterConfig' => []
+				'globalConfig' => [
+					'siteURI' => $config->get('siteURI'),
+					'baseURI' => $config->get('baseURI')
+				],
+				'data' => []
 			]
 		]
 	];
