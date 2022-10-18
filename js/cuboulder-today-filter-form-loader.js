@@ -1,4 +1,4 @@
-function cuboulderTodayFilterFormLoader(siteURI, baseURI, label, path, machineName, configuration) {
+function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, machineName, configuration) {
 	const
 		containerElement = document.getElementById('cuboulder_today_filter_form_container_' + machineName),
 		checkboxesElement = containerElement.getElementsByTagName('div')[0],
@@ -6,10 +6,10 @@ function cuboulderTodayFilterFormLoader(siteURI, baseURI, label, path, machineNa
 		showAllElement = document.querySelector('.cuboulder-today-filter-form-show-all-' + machineName);
 	let loadRequested = false, loadComplete = false;
 	function _buildTree(data) {
-		const root = {id: '0', children: [], sorted: false}, tidMap = new Map();
-		tidMap.set('0', root);
+		const root = {id: 0, children: [], sorted: false}, tidMap = new Map();
+		tidMap.set(0, root);
 		data.sort((itemA, itemB) => itemA['depth'] - itemB['depth']).forEach((item) => {
-			const id = item['tid'], node = {
+			const id = parseInt(item['tid']), node = {
 				id: id,
 				uuid: item['uuid'],
 				name: item['name'],
@@ -20,7 +20,7 @@ function cuboulderTodayFilterFormLoader(siteURI, baseURI, label, path, machineNa
 			};
 			tidMap.set(id, node);
 			item['parents'].forEach((parentId) => {
-				const parentNode = tidMap.get(parentId);
+				const parentNode = tidMap.get(parseInt(parentId));
 				if(parentNode)
 					parentNode.children.push(node);
 			});
@@ -38,17 +38,21 @@ function cuboulderTodayFilterFormLoader(siteURI, baseURI, label, path, machineNa
 	function _displayTree(node, parentElement) { 
 		const
 			container = document.createElement('div'),
-			checkboxHTML = checkboxElementHTML.replace(/cuboulder_today_filter_loading|cuboulder-today-filter-loading/g, node.id);
+			checkboxHTML = checkboxElementHTML.replace(/cuboulder_today_filter_loading|cuboulder-today-filter-loading/g, node.id),
+			includes = configuration['includes'];
 		container.className = 'cuboulder-today-filter-form-options ' + checkboxesElement.className;
 		container.innerHTML = checkboxHTML;
-		container.querySelector('label').innerText = node.name;
+		const checkbox = container.querySelector('input[type="checkbox"]'), label = container.querySelector('label');
+		label.innerText = node.name;
+		if(includes.indexOf(node.id) != -1)
+			checkbox.setAttribute('checked', '');
 		node.children.forEach((node) => _displayTree(node, container));
 		parentElement.appendChild(container);
 	}
 	function _load() {
 		loadRequested = true;
 		const loaderDiv = document.createElement('div');
-		loaderDiv.innerHTML = '<div class="ajax-progress ajax-progress-throbber"><div class="throbber"></div></div>';
+		loaderDiv.innerHTML = drupal.theme.ajaxProgressThrobber();
 		containerElement.insertBefore(loaderDiv, containerElement.childNodes[0]);
 		checkboxesElement.innerHTML = '';
 		fetch(baseURI + path)

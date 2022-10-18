@@ -11,3 +11,4 @@ filters:
   units:
     label: 'Unit'
     path: '/options/syndication_unit'
+filterIncludeLimit: 128
