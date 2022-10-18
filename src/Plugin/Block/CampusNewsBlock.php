@@ -159,7 +159,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 			'checkboxes' => [
 				'#type' => 'checkboxes',
 				'#options' => [
-					'cuboulder_today_filter_loading' => $this->t('Loading options')
+					'cuboulder_today_filter_loading' => $this->t($label)
 				]
 			]
 		];
@@ -168,7 +168,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 	private function saveFilterConfiguration($form_state, $filterName) {
 		$values = $form_state->getValues()['filter_' . $filterName];
 		$idArray = [];
-		// \Drupal::logger('ucb_campus_news')->notice(\Drupal\Component\Serialization\Json::encode($values));
+		\Drupal::logger('ucb_campus_news')->notice(\Drupal\Component\Serialization\Json::encode($values));
 		$this->configuration['filters'][$filterName] = [
 			'enabled' => $values['enable_filter'],
 			'includes' => $idArray
