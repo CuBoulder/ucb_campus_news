@@ -1,4 +1,4 @@
-siteURI: 'https://www.colorado.edu/today'
+siteURI: 'https://www.colorado.edu/today/syndicate/article/read'
 baseURI: 'https://www.colorado.edu/today/syndicate/article'
 path: '/'
 filters:
