@@ -2,3 +2,10 @@ cuboulder_today_filter_form_loader:
   version: 1.0
   js:
     js/cuboulder-today-filter-form-loader.js: {}
+
+ucb_campus_news:
+  version: 1.0
+  js:
+    js/ucb-campus-news.js: {}
+  css: 
+    css/ucb-campus-news.css: {}
