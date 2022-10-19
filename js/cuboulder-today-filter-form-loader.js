@@ -6,7 +6,7 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 		showAllElement = document.querySelector('.cuboulder-today-filter-form-show-all-' + machineName);
 	let loadRequested = false, loadComplete = false;
 	function _buildTree(data) {
-		const root = {id: 0, children: [], sorted: false}, tidMap = new Map();
+		const root = {id: 0, parents: [], children: [], sorted: false, formElement: null}, tidMap = new Map();
 		tidMap.set(0, root);
 		data.sort((itemA, itemB) => itemA['depth'] - itemB['depth']).forEach((item) => {
 			const id = parseInt(item['tid']), node = {
@@ -15,14 +15,18 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 				name: item['name'],
 				description: item['description'],
 				weight: parseInt(item['weight']),
+				parents: [],
 				children: [],
-				sorted: false
+				sorted: false,
+				formElement: null
 			};
 			tidMap.set(id, node);
 			item['parents'].forEach((parentId) => {
 				const parentNode = tidMap.get(parseInt(parentId));
-				if(parentNode)
+				if(parentNode) {
+					node.parents.push(parentNode);
 					parentNode.children.push(node);
+				}
 			});
 		});
 		return root;
@@ -37,7 +41,7 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 	}
 	function _displayTree(node, parentElement, parentSelected) { 
 		const
-			container = document.createElement('div'),
+			container = node.formElement = document.createElement('div'),
 			checkboxHTML = checkboxElementHTML.replace(/cuboulder_today_filter_loading|cuboulder-today-filter-loading/g, node.id),
 			includes = configuration['includes'],
 			isSelected = includes.indexOf(node.id) != -1;
@@ -45,33 +49,46 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 		container.innerHTML = checkboxHTML;
 		const checkbox = container.querySelector('input[type="checkbox"]'), label = container.querySelector('label');
 		label.innerText = node.name;
-		if(isSelected)
-			checkbox.setAttribute('checked', '');
-		if(parentSelected)
-			checkbox.setAttribute('disabled', '');
+		if(isSelected || parentSelected)
+			checkbox.setAttribute('checked', 'checked');
 		checkbox.addEventListener('change', function(event) {
-			if(node.children.length != 0) {
-				if(event.currentTarget.checked)
-					_disableChildInputs(container, checkbox);
-				else _enableChildInputs(container, checkbox);
+			if(event.currentTarget.checked) {
+				_checkAllChildren(node);
+			} else {
+				_uncheckAllParents(node);
+				_uncheckAllChildren(node);
 			}
 		});
 		node.children.forEach((node) => _displayTree(node, container, parentSelected || isSelected));
 		parentElement.appendChild(container);
 	}
-	function _modifyChildInputs(parentElement, originElement, functionToApply) {
-		const childInputElements = parentElement.getElementsByTagName('input');
-		for(let elementIndex = 0; elementIndex < childInputElements.length; elementIndex++) {
-			const element = childInputElements[elementIndex];
-			if(element != originElement)
-				functionToApply(element);
-		}
+	function _checkNode(node) {
+		const formElement = node.formElement;
+		if(formElement)
+			node.formElement.querySelector('input[type="checkbox"]').checked = true;
 	}
-	function _disableChildInputs(parentElement, originElement) {
-		_modifyChildInputs(parentElement, originElement, (element) => element.setAttribute('disabled', ''));
+	function _uncheckNode(node) {
+		const formElement = node.formElement;
+		if(formElement)
+			node.formElement.querySelector('input[type="checkbox"]').checked = false;
 	}
-	function _enableChildInputs(parentElement, originElement) {
-		_modifyChildInputs(parentElement, originElement, (element) => element.removeAttribute('disabled'));
+	function _uncheckAllParents(node) {
+		node.parents.forEach((parentNode) => {
+			_uncheckNode(parentNode);
+			_uncheckAllParents(parentNode);
+		});
+	}
+	function _checkAllChildren(node) {
+		node.children.forEach((childNode) => {
+			_checkNode(childNode);
+			_checkAllChildren(childNode);
+		});
+	}
+	function _uncheckAllChildren(node) {
+		node.children.forEach((childNode) => {
+			_uncheckNode(childNode);
+			_uncheckAllChildren(childNode);
+		});
 	}
 	function _load() {
 		loadRequested = true;
