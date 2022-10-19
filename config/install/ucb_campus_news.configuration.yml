@@ -12,3 +12,15 @@ filters:
     label: 'Unit'
     path: '/options/syndication_unit'
 filterIncludeLimit: 128
+display:
+  label: Display
+  options:
+    - Teaser
+    - Grid
+    - Title and Thumbnail
+    - Title
+count:
+  label: Items
+  options:
+    - 5
+    - 10
