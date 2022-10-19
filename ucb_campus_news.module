@@ -14,6 +14,9 @@ function ucb_campus_news_theme() {
 				],
 				'data' => []
 			]
-		]
+			],
+			'campus_news' => [
+				'theme'=>'ucb_campus_news'
+			]
 	];
 }

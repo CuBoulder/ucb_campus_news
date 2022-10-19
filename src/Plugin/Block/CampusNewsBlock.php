@@ -72,7 +72,8 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 			$filters[$filterMachineName] = $blockFilterConfigurationItem['enabled'] ? $blockFilterConfigurationItem['includes'] : [0];
 		}
 		return [
-			'#data' => ['filters' => $filters] // Passes the include filters on to be avalaible in the block's template
+			'#data' => ['filters' => $filters], // Passes the include filters on to be avalaible in the block's template
+			'#theme' => 'campus_news',
 		];
 	}
 
