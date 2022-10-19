@@ -57,7 +57,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 	 * {@inheritdoc}
 	 */  
 	public function defaultConfiguration() {
-		return ['filters' => []];
+		return ['filters' => [], 'display' => 0, 'count' => 0];
 	}
 
 	/**
@@ -65,15 +65,19 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 	 */
 	public function build() {
 		$filters = [];
-		$blockFilterConfiguration = $this->configuration['filters'];
+		$blockConfiguration = $this->getConfiguration();
+		$blockFilterConfiguration = $blockConfiguration['filters'];
 		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
 		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
 			$blockFilterConfigurationItem = array_key_exists($filterMachineName, $blockFilterConfiguration) ? $blockFilterConfiguration[$filterMachineName] : ['enabled' => 0, 'includes' => []];
 			$filters[$filterMachineName] = $blockFilterConfigurationItem['enabled'] ? $blockFilterConfigurationItem['includes'] : [0];
 		}
 		return [
-			'#data' => ['filters' => $filters], // Passes the include filters on to be avalaible in the block's template
-			'#theme' => 'campus_news',
+			'#data' => [
+				'filters' => $filters, // Passes the include filters on to be avalaible in the block's template
+				'display' => $blockConfiguration['display'],
+				'count' => $blockConfiguration['count'],
+			]
 		];
 	}
 
@@ -92,6 +96,8 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
 		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem)
 			$this->addFilterToForm($buildArray, $moduleFilterConfigurationItem['label'], $moduleFilterConfigurationItem['path'], $filterMachineName);
+		$this->addConfigSelectToForm($buildArray, 'display');
+		$this->addConfigSelectToForm($buildArray, 'count');
 		return $buildArray;
 	}
 
@@ -124,6 +130,8 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 			}
 			$form_state->setValue('filter_' . $filterMachineName . '_includes', $includesProcessed);
 		}
+		$this->validateConfiguration('display', $form_state);
+		$this->validateConfiguration('count', $form_state);
 	}
 
 	/**
@@ -140,6 +148,8 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 				'includes' => $idArray
 			];	
 		}
+		$this->configuration['display'] = $form_state->getValue('display');
+		$this->configuration['count'] = $form_state->getValue('count');
 		parent::blockSubmit($form, $form_state);
 	}
 
@@ -202,5 +212,33 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 				]
 			]
 		];
+	}
+
+	/**
+	 * This helper function adds the display and count dropdowns.
+	 * @param array &$form
+	 * @param string $configMachineName
+	 */
+	private function addConfigSelectToForm(array &$form, $configMachineName) {
+		$config = $this->moduleConfiguration->get($configMachineName);
+		$form[$configMachineName] = [
+			'#type' => 'select',
+			'#title' => $this->t($config['label']),
+			'#options' => $config['options'],
+			'#default_value' => $this->getConfiguration()[$configMachineName]
+		];
+	}
+
+	/**
+	 * This helper function validates the display and count dropdowns.
+	 * @param string $configMachineName
+	 * @param \Drupal\Core\Form\FormStateInterface $form_state
+	 */
+	private function validateConfiguration($configMachineName, FormStateInterface $form_state) {
+		$config = $this->moduleConfiguration->get($configMachineName);
+		$value = intval($form_state->getValue($configMachineName));
+		if($value < 0 || $value >= sizeof($config['options']))
+			$form_state->setErrorByName('settings][' . $configMachineName . '', 'Please select a valid option for ' . $config['label'] . '.');
+		else $form_state->setValue($configMachineName, $value);
 	}
 }
