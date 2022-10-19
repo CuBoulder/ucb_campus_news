@@ -97,10 +97,48 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 	/**
 	 * {@inheritdoc}
 	 */
+	public function blockValidate($form, FormStateInterface $form_state) {
+		$form_state->clearErrors(); // TODO: More elegant way to get rid of those unwanted errors and allow for validation of non-filter fields (HARDER than it sounds)
+		$formValues = $form_state->getValues();
+		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
+		$filterIncludeLimit = $this->moduleConfiguration->get('filterIncludeLimit') + 1;
+		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
+			$filterFormValues = $formValues['filter_' . $filterMachineName];
+			$includesProcessed = [];
+			if($filterFormValues['enable_filter']) {
+				$includesPreprocessed = array_keys($filterFormValues['container']['checkboxes']); // This array will contain all the checked items for the filter, and possibly also `cuboulder_today_filter_loading` to spice things up.
+				if(sizeof($includesPreprocessed) > $filterIncludeLimit) // Because we're not validating the input to match a predefined array, it's a good idea to at least limit the length.
+					$form_state->setErrorByName('settings][filter_' . $filterMachineName . '][container][checkboxes', 'Too many items selected to filter by ' . $moduleFilterConfigurationItem['label'] . '.');
+				else {
+					foreach($includesPreprocessed as $includeString) {
+						if($includeString != 'cuboulder_today_filter_loading') {
+							$includeInt = intval($includeString);
+							if($includeInt > 0)
+								$includesProcessed[] = $includeInt;
+						}
+					}
+				}
+				if(sizeof($includesProcessed) == 0) // If the filter is enabled, at least one of the boxes should be checked to include any results at all (or it may do something unexpected and include everything).
+					$form_state->setErrorByName('settings][filter_' . $filterMachineName . '][container][checkboxes', 'Please select at least one item to filter by ' . $moduleFilterConfigurationItem['label'] . '.');
+			}
+			$form_state->setValue('filter_' . $filterMachineName . '_includes', $includesProcessed);
+		}
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
 	public function blockSubmit($form, FormStateInterface $form_state) {
 		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
-		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem)
-			$this->saveFilterConfiguration($form_state, $filterMachineName);
+		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
+			$values = $form_state->getValues()['filter_' . $filterMachineName];
+			$idArray = $form_state->getValue('filter_' . $filterMachineName . '_includes') ?? [];
+			// \Drupal::logger('ucb_campus_news')->notice(\Drupal\Component\Serialization\Json::encode($idArray));
+			$this->configuration['filters'][$filterMachineName] = [
+				'enabled' => $values['enable_filter'],
+				'includes' => $idArray
+			];	
+		}
 		parent::blockSubmit($form, $form_state);
 	}
 
@@ -162,16 +200,6 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 					'cuboulder_today_filter_loading' => $this->t($label)
 				]
 			]
-		];
-	}
-
-	private function saveFilterConfiguration($form_state, $filterName) {
-		$values = $form_state->getValues()['filter_' . $filterName];
-		$idArray = [];
-		\Drupal::logger('ucb_campus_news')->notice(\Drupal\Component\Serialization\Json::encode($values));
-		$this->configuration['filters'][$filterName] = [
-			'enabled' => $values['enable_filter'],
-			'includes' => $idArray
 		];
 	}
 }
