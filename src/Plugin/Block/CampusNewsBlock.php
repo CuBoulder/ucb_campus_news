@@ -101,19 +101,20 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 		$form_state->clearErrors(); // TODO: More elegant way to get rid of those unwanted errors and allow for validation of non-filter fields (HARDER than it sounds)
 		$formValues = $form_state->getValues();
 		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
+		$filterIncludeLimit = $this->moduleConfiguration->get('filterIncludeLimit') + 1;
 		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
 			$filterFormValues = $formValues['filter_' . $filterMachineName];
 			$includesProcessed = [];
 			if($filterFormValues['enable_filter']) {
 				$includesPreprocessed = array_keys($filterFormValues['container']['checkboxes']); // This array will contain all the checked items for the filter, and possibly also `cuboulder_today_filter_loading` to spice things up.
-				if(sizeof($includesPreprocessed) > $this->moduleConfiguration->get('filterIncludeLimit') + 1) // Because we're not validating the input to match a predefined array, it's a good idea to at least limit the length.
+				if(sizeof($includesPreprocessed) > $filterIncludeLimit) // Because we're not validating the input to match a predefined array, it's a good idea to at least limit the length.
 					$form_state->setErrorByName('settings][filter_' . $filterMachineName . '][container][checkboxes', 'Too many items selected to filter by ' . $moduleFilterConfigurationItem['label'] . '.');
 				else {
 					foreach($includesPreprocessed as $includeString) {
 						if($includeString != 'cuboulder_today_filter_loading') {
 							$includeInt = intval($includeString);
 							if($includeInt > 0)
-								$includesProcessed[] = intval($includeString);
+								$includesProcessed[] = $includeInt;
 						}
 					}
 				}

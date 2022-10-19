@@ -35,19 +35,43 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 		}
 		return node;
 	}
-	function _displayTree(node, parentElement) { 
+	function _displayTree(node, parentElement, parentSelected) { 
 		const
 			container = document.createElement('div'),
 			checkboxHTML = checkboxElementHTML.replace(/cuboulder_today_filter_loading|cuboulder-today-filter-loading/g, node.id),
-			includes = configuration['includes'];
+			includes = configuration['includes'],
+			isSelected = includes.indexOf(node.id) != -1;
 		container.className = 'cuboulder-today-filter-form-options ' + checkboxesElement.className;
 		container.innerHTML = checkboxHTML;
 		const checkbox = container.querySelector('input[type="checkbox"]'), label = container.querySelector('label');
 		label.innerText = node.name;
-		if(includes.indexOf(node.id) != -1)
+		if(isSelected)
 			checkbox.setAttribute('checked', '');
-		node.children.forEach((node) => _displayTree(node, container));
+		if(parentSelected)
+			checkbox.setAttribute('disabled', '');
+		checkbox.addEventListener('change', function(event) {
+			if(node.children.length != 0) {
+				if(event.currentTarget.checked)
+					_disableChildInputs(container, checkbox);
+				else _enableChildInputs(container, checkbox);
+			}
+		});
+		node.children.forEach((node) => _displayTree(node, container, parentSelected || isSelected));
 		parentElement.appendChild(container);
+	}
+	function _modifyChildInputs(parentElement, originElement, functionToApply) {
+		const childInputElements = parentElement.getElementsByTagName('input');
+		for(let elementIndex = 0; elementIndex < childInputElements.length; elementIndex++) {
+			const element = childInputElements[elementIndex];
+			if(element != originElement)
+				functionToApply(element);
+		}
+	}
+	function _disableChildInputs(parentElement, originElement) {
+		_modifyChildInputs(parentElement, originElement, (element) => element.setAttribute('disabled', ''));
+	}
+	function _enableChildInputs(parentElement, originElement) {
+		_modifyChildInputs(parentElement, originElement, (element) => element.removeAttribute('disabled'));
 	}
 	function _load() {
 		loadRequested = true;
@@ -60,7 +84,7 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 			.then((data) => _buildTree(data))
 			.then((tree) => _sortTree(tree))
 			.then((tree) => {
-				tree.children.forEach((node) => _displayTree(node, checkboxesElement));
+				tree.children.forEach((node) => _displayTree(node, checkboxesElement, false));
 				containerElement.removeChild(loaderDiv);
 				loadComplete = true;
 			});
