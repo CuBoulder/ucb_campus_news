@@ -1,6 +1,5 @@
 // Get render style of today articles
 var renderStyle = document.getElementById('ucb-campus-news-block').dataset.rendermethod
-    console.log(`I am logging as ${renderStyle}`)
 
 // Construct API url
 var categories = []
@@ -11,28 +10,30 @@ var baseURL = 'https://www.colorado.edu/today/syndicate/article'
 
 
 // Fetch final URL, render in requested renderStyle
+/*
+ * 0 - Teaser
+ * 1 - Grid
+ * 2 - Title & Thumbnail
+ * 3 - Title Only
+ */
 fetch(baseURL).then((response) => response.json()).then((data) => {
     switch (renderStyle) {
-        case "Teaser":
+        case "0":
             console.log("I am a teaser")
             renderTeaser(data)
             break;
 
-        case "Grid":
+        case "1":
             console.log("I am a grid")
             renderGrid(data)
             break;
 
-        case "Teaser":
-            console.log("I am a teaser")
-            break;
-
-        case "Title &amp; Thumbnail":
+        case "2":
             console.log('I am title & thumbnail')
             renderTitleThumbnail(data)
             break;
 
-        case "Title Only":
+        case "3":
             console.log('I am title only')
             renderTitle(data)
             break;

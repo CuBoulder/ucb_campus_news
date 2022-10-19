@@ -10,8 +10,7 @@
   ]
   %}
   
-  <div{{attributes.addClass(classes)}} data-rendermethod="{{ content.field_ucb_campus_news_display|render|striptags|trim }}" id="ucb-campus-news-block">
-  
+  <div{{attributes.addClass(classes)}} data-rendermethod="{{ data.display }}" id="ucb-campus-news-block">
           <h2{{title_attributes}}>
               {{ label }}
           </h2>
