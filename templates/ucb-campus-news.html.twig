@@ -10,7 +10,7 @@
   ]
   %}
   
-  <div{{attributes.addClass(classes)}} data-rendermethod="{{ data.display }}" id="ucb-campus-news-block">
+  <div{{attributes.addClass(classes)}} data-rendermethod="{{ data.display }}" data-filters="{{data.filters|json_encode}}" id="ucb-campus-news-block">
           <h2{{title_attributes}}>
               {{ label }}
           </h2>

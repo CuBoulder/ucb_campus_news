@@ -1,13 +1,37 @@
 // Get render style of today articles
 var renderStyle = document.getElementById('ucb-campus-news-block').dataset.rendermethod
+// Get filters from form, convert to json
+var dataFilters = document.getElementById('ucb-campus-news-block').dataset.filters
+var dataFiltersJSON = JSON.parse(dataFilters)
 
-// Construct API url
-var categories = []
-var audience = []
-var syndicationUnit = []
+console.log(dataFiltersJSON)
+
+// Construct API url using json object
+/*
+?category=
+?unit=
+?audience=
+?view_mode= <- only for grid
+*/
+
+// Only a 0 in the array means no filters selected, if array only contains a 0, remove it.
+var categories = dataFiltersJSON.categories.filter((id)=> id !=0)
+var audience = dataFiltersJSON.audiences.filter((id)=> id !=0)
+var syndicationUnit = dataFiltersJSON.units.filter((id)=> id !=0)
+
+// Build parameter strings, if not empty
+var categoryParam =  categories.length === 0 ? '' :`category=${categories.join("+")}`
+var audienceParam =  audience.length === 0 ? '' :`audience=${audience.join("+")}`
+var syndicationUnitParam = syndicationUnit.length === 0 ? '' :`unit=${syndicationUnit.join("+")}`
+
+
+console.log('my params for categories', categoryParam)
+console.log('my parm for audience', audienceParam)
+console.log('my synd param', syndicationUnitParam)
 
 var baseURL = 'https://www.colorado.edu/today/syndicate/article'
-
+// Adds in filters
+var filteredURL = `${baseURL}?${categoryParam}${categoryParam === '' ? audienceParam : '&'+audienceParam}`
 
 // Fetch final URL, render in requested renderStyle
 /*
