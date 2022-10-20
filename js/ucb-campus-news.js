@@ -1,42 +1,39 @@
 // Get render style of today articles
 var renderStyle = document.getElementById('ucb-campus-news-block').dataset.rendermethod
-// Get filters from form, convert to json
+// Get filters from form, convert to iterable json
 var dataFilters = document.getElementById('ucb-campus-news-block').dataset.filters
 var dataFiltersJSON = JSON.parse(dataFilters)
-
-console.log(dataFiltersJSON)
 
 // Construct API url using json object
 /*
 ?category=
 ?unit=
 ?audience=
-?view_mode= <- only for grid
+?view_mode= <- only for grid & feature (TO DO)
 */
 
-// Only a 0 in the array means no filters selected, if array only contains a 0, remove it.
+// Only a 0 in the array means no filters selected, if array only contains a 0, remove it and set an empty array.
 var categories = dataFiltersJSON.categories.filter((id)=> id !=0)
 var audience = dataFiltersJSON.audiences.filter((id)=> id !=0)
 var syndicationUnit = dataFiltersJSON.units.filter((id)=> id !=0)
 
-// Build parameter strings, if not empty
+// Construct the URL
+// Build parameter strings, if respective filter array is not empty. Each array contains ID's and builds each section of the filter piece
+// Format => "?parameter=id+id"
 var categoryParam =  categories.length === 0 ? '' :`category=${categories.join("+")}`
 var audienceParam =  audience.length === 0 ? '' :`audience=${audience.join("+")}`
 var syndicationUnitParam = syndicationUnit.length === 0 ? '' :`unit=${syndicationUnit.join("+")}`
 
-
-console.log('my params for categories', categoryParam)
-console.log('my parm for audience', audienceParam)
-console.log('my synd param', syndicationUnitParam)
-
 var baseURL = 'https://www.colorado.edu/today/syndicate/article'
-// Adds in filters
+// Adds in filter parameters for API request
 var filterUrl = ""
 
+// Conditional statements for building the API parameter piece of the endpoint
 if(categoryParam != ""){
     filterUrl += "?" + categoryParam
 }
 
+// These statements adjust the parameter piece of the URL depending on what 
 if(categoryParam === "" && audienceParam !=""){
     filterUrl += "?" + audienceParam
 } else if(audienceParam !="") {
@@ -48,9 +45,10 @@ if(categoryParam == "" && audienceParam == "" && syndicationUnitParam !=""){
 } else if(syndicationUnitParam != "" && (categoryParam != "" || audienceParam !="")){
     filterUrl += `&${syndicationUnitParam}`
 } else {
-    // DO nothing
+    // Do nothing
 }
 
+// This condition enables grid mode to pull the wide thumbnails for styling in grid mode, otherwise just grab thumbnails
 var API = baseURL + filterUrl
 if(renderStyle === "1"){
     if(categoryParam == "" && audienceParam == "" && syndicationUnitParam ==""){
@@ -66,28 +64,25 @@ if(renderStyle === "1"){
  * 2 - Title & Thumbnail
  * 3 - Title Only
  */
+
 fetch(API).then((response) => response.json()).then((data) => {
     switch (renderStyle) {
         case "0":
-            console.log("I am a teaser")
             renderTeaser(data)
             break;
 
         case "1":
-            console.log("I am a grid")
             renderGrid(data)
             break;
 
         case "2":
-            console.log('I am title & thumbnail')
             renderTitleThumbnail(data)
             break;
 
         case "3":
-            console.log('I am title only')
             renderTitle(data)
             break;
-    
+    // TO DO - FEATURE
         default:
             renderTeaser(data)
             break;
@@ -115,10 +110,10 @@ function renderTeaser(data){
     // After articles, create Read More link
     var readMoreContainer = document.createElement('div')
     readMoreContainer.classList = 'ucb-campus-news-link-container'
-    // After articles, create Read More link
     var readMoreLink = document.createElement('a')
     readMoreLink.classList = 'ucb-campus-news-link'
     readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+    // Adds filter choices to Read More Link
     if(filterUrl != ""){
         readMoreLink.href += filterUrl
     }
@@ -134,6 +129,7 @@ function renderGrid(data){
     document.getElementById("ucb-campus-news-article-section").classList += "row"
     // Iterate
     for(key in data){
+        console.log(key)
         var article = data[key]
         // Create article container
         var articleContainer = document.createElement('div')
@@ -151,7 +147,7 @@ function renderGrid(data){
     readMoreContainer.classList = 'ucb-campus-news-grid-link-container'
     var readMoreLink = document.createElement('a')
     readMoreLink.classList = 'ucb-campus-news-grid-link'
-    // TO DO, will need to modify read more link w/ filters
+    // Adds filter choices to Read More Link
     readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
     if(filterUrl != ""){
         readMoreLink.href += filterUrl
@@ -182,6 +178,7 @@ function renderTitle(data){
         var readMoreLink = document.createElement('a')
         readMoreLink.classList = 'ucb-campus-news-link'
         readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+        // Adds filter choices to Read More Link
         if(filterUrl != ""){
             readMoreLink.href += filterUrl
         }
@@ -211,6 +208,7 @@ function renderTitleThumbnail(data){
         var readMoreLink = document.createElement('a')
         readMoreLink.classList = 'ucb-campus-news-link'
         readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+        // Adds filter choices to Read More Link
         if(filterUrl != ""){
             readMoreLink.href += filterUrl
         }
