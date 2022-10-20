@@ -35,13 +35,6 @@
     margin-bottom: 20px;
 }
 
- .campus-news-article-grid > .field-name-field-article-thumbnail > a > img{
-    width: 100%;
-    object-fit: cover;
-    height: 180px;
-    margin-bottom: 10px;
- }
-
  .campus-news-article-grid > a {
     font-weight: bolder;
     margin-top: 5px;

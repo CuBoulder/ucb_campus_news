@@ -31,8 +31,34 @@ console.log('my synd param', syndicationUnitParam)
 
 var baseURL = 'https://www.colorado.edu/today/syndicate/article'
 // Adds in filters
-var filteredURL = `${baseURL}?${categoryParam}${categoryParam === '' ? audienceParam : '&'+audienceParam}`
+var filterUrl = ""
 
+if(categoryParam != ""){
+    filterUrl += "?" + categoryParam
+}
+
+if(categoryParam === "" && audienceParam !=""){
+    filterUrl += "?" + audienceParam
+} else if(audienceParam !="") {
+    filterUrl += `&${audienceParam}`
+}
+
+if(categoryParam == "" && audienceParam == "" && syndicationUnitParam !=""){
+    filterUrl += "?" + syndicationUnitParam
+} else if(syndicationUnitParam != "" && (categoryParam != "" || audienceParam !="")){
+    filterUrl += `&${syndicationUnitParam}`
+} else {
+    // DO nothing
+}
+
+var API = baseURL + filterUrl
+if(renderStyle === "1"){
+    if(categoryParam == "" && audienceParam == "" && syndicationUnitParam ==""){
+        API += "?view_mode=grid"
+    } else {
+        API += '&view_mode=grid'
+    }
+}
 // Fetch final URL, render in requested renderStyle
 /*
  * 0 - Teaser
@@ -40,7 +66,7 @@ var filteredURL = `${baseURL}?${categoryParam}${categoryParam === '' ? audienceP
  * 2 - Title & Thumbnail
  * 3 - Title Only
  */
-fetch(baseURL).then((response) => response.json()).then((data) => {
+fetch(API).then((response) => response.json()).then((data) => {
     switch (renderStyle) {
         case "0":
             console.log("I am a teaser")
@@ -93,6 +119,9 @@ function renderTeaser(data){
     var readMoreLink = document.createElement('a')
     readMoreLink.classList = 'ucb-campus-news-link'
     readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+    if(filterUrl != ""){
+        readMoreLink.href += filterUrl
+    }
     readMoreLink.innerText = 'Read more at CU Boulder Today'
     readMoreContainer.appendChild(readMoreLink)
 
@@ -124,6 +153,9 @@ function renderGrid(data){
     readMoreLink.classList = 'ucb-campus-news-grid-link'
     // TO DO, will need to modify read more link w/ filters
     readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+    if(filterUrl != ""){
+        readMoreLink.href += filterUrl
+    }
     readMoreLink.innerText = 'Read more at CU Boulder Today'
 
      // Append
@@ -150,6 +182,9 @@ function renderTitle(data){
         var readMoreLink = document.createElement('a')
         readMoreLink.classList = 'ucb-campus-news-link'
         readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+        if(filterUrl != ""){
+            readMoreLink.href += filterUrl
+        }
         readMoreLink.innerText = 'Read more at CU Boulder Today'
         readMoreContainer.appendChild(readMoreLink)
     
@@ -176,6 +211,9 @@ function renderTitleThumbnail(data){
         var readMoreLink = document.createElement('a')
         readMoreLink.classList = 'ucb-campus-news-link'
         readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+        if(filterUrl != ""){
+            readMoreLink.href += filterUrl
+        }
         readMoreLink.innerText = 'Read more at CU Boulder Today'
         readMoreContainer.appendChild(readMoreLink)
     
