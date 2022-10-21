@@ -3,6 +3,9 @@ var renderStyle = document.getElementById('ucb-campus-news-block').dataset.rende
 // Get filters from form, convert to iterable json
 var dataFilters = document.getElementById('ucb-campus-news-block').dataset.filters
 var dataFiltersJSON = JSON.parse(dataFilters)
+// Count for how many articles to render
+var itemCount = document.getElementById('ucb-campus-news-block').dataset.count == "0" ? 5 : 10
+console.log(`I am logging ${itemCount} articles`)
 
 // Construct API url using json object
 /*
@@ -93,18 +96,21 @@ fetch(API).then((response) => response.json()).then((data) => {
 function renderTeaser(data){
     // Iterate through response object
     for(key in data){
-        var article = data[key]
-        // Create article container
-        var articleContainer = document.createElement('div')
-        articleContainer.classList = "campus-news-article-teaser d-flex"
-        articleContainer.innerHTML = article.thumbnail;
-        var articleContainerText = document.createElement('div')
-        articleContainerText.innerHTML += article.title
-        articleContainerText.innerHTML += article.body
-        articleContainer.appendChild(articleContainerText)
+        // Render number specifed by user
+        if(itemCount > document.getElementById("ucb-campus-news-article-section").children.length){
+            var article = data[key]
+            // Create article container
+            var articleContainer = document.createElement('div')
+            articleContainer.classList = "campus-news-article-teaser d-flex"
+            articleContainer.innerHTML = article.thumbnail;
+            var articleContainerText = document.createElement('div')
+            articleContainerText.innerHTML += article.title
+            articleContainerText.innerHTML += article.body
+            articleContainer.appendChild(articleContainerText)
 
-        // Append
-        document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+            // Append
+            document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+        }
     }
     
     // After articles, create Read More link
@@ -127,19 +133,23 @@ function renderTeaser(data){
 // Render as Grid
 function renderGrid(data){
     document.getElementById("ucb-campus-news-article-section").classList += "row"
+    // Adjusted count for grid
+    var gridCount = itemCount == 5 ? 6 : 9
     // Iterate
     for(key in data){
-        console.log(key)
-        var article = data[key]
-        // Create article container
-        var articleContainer = document.createElement('div')
-        articleContainer.classList = "campus-news-article-grid col-sm-12 col-md-6 col-lg-4"
-        articleContainer.innerHTML = article.thumbnail;
-        articleContainer.innerHTML += article.title
-        articleContainer.innerHTML += article.body
+        // Render number specified by user
+        if(gridCount > document.getElementById("ucb-campus-news-article-section").children.length){
+            var article = data[key]
+            // Create article container
+            var articleContainer = document.createElement('div')
+            articleContainer.classList = "campus-news-article-grid col-sm-12 col-md-6 col-lg-4"
+            articleContainer.innerHTML = article.thumbnail;
+            articleContainer.innerHTML += article.title
+            articleContainer.innerHTML += article.body
 
-        // Append
-        document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+            // Append
+            document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+        }
     }
 
     // After articles, create Read More link (Grid style)
@@ -163,14 +173,17 @@ function renderGrid(data){
 function renderTitle(data){
     // Iterate
     for(key in data){
-        var article = data[key]
-        // Create article container
-        var articleContainer = document.createElement('div')
-        articleContainer.classList = 'ucb-campus-news-title-only'
-        articleContainer.innerHTML += article.title
+        // Render number specified by user
+        if(itemCount > document.getElementById("ucb-campus-news-article-section").children.length){
+            var article = data[key]
+            // Create article container
+            var articleContainer = document.createElement('div')
+            articleContainer.classList = 'ucb-campus-news-title-only'
+            articleContainer.innerHTML += article.title
 
-        // Append
-        document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+            // Append
+            document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+        }
     }
         var readMoreContainer = document.createElement('div')
         readMoreContainer.classList = 'ucb-campus-news-link-container'
@@ -192,15 +205,18 @@ function renderTitle(data){
 function renderTitleThumbnail(data){
     // Iterate
     for(key in data){
-        var article = data[key]
-        // Create article container
-        var articleContainer = document.createElement('div')
-        articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex'
-        articleContainer.innerHTML = article.thumbnail;
-        articleContainer.innerHTML += article.title
+        // Render number specified by user
+        if(itemCount > document.getElementById("ucb-campus-news-article-section").children.length){
+            var article = data[key]
+            // Create article container
+            var articleContainer = document.createElement('div')
+            articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex'
+            articleContainer.innerHTML = article.thumbnail;
+            articleContainer.innerHTML += article.title
 
-        // Append
-        document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+            // Append
+            document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+        }
     }
         var readMoreContainer = document.createElement('div')
         readMoreContainer.classList = 'ucb-campus-news-link-container'
