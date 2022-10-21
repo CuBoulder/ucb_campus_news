@@ -80,3 +80,9 @@
     max-height: 75px;
     margin-right: 10px;
 }
+
+.article-feature-block-remaining > .ucb-campus-news-title-thumbnail-only > .field-name-field-article-thumbnail > a > .image-slider {
+    max-width: 100%;
+    height: 80px;
+    object-fit: cover;
+}

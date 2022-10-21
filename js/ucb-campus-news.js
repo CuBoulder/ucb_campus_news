@@ -11,7 +11,7 @@ var itemCount = document.getElementById('ucb-campus-news-block').dataset.count =
 ?category=
 ?unit=
 ?audience=
-?view_mode= <- only for grid & feature (TO DO)
+?view_mode= <- only for grid & feature
 */
 
 // Only a 0 in the array means no filters selected, if array only contains a 0, remove it and set an empty array.
@@ -53,10 +53,19 @@ if(categoryParam == "" && audienceParam == "" && syndicationUnitParam !=""){
 // This condition enables grid mode to pull the wide thumbnails for styling in grid mode, otherwise just grab thumbnails
 var API = baseURL + filterUrl
 if(renderStyle === "1"){
-    if(categoryParam == "" && audienceParam == "" && syndicationUnitParam ==""){
+    if(categoryParam == "" && audienceParam == "" && syndicationUnitParam == ""){
         API += "?view_mode=grid"
     } else {
         API += '&view_mode=grid'
+    }
+}
+
+// This condition enables Feature Block to pull the widest thumbnails for styling
+if(renderStyle === "4"){
+    if(categoryParam == "" && audienceParam == "" && syndicationUnitParam == ""){
+        API += "?view_mode=feature"
+    } else {
+        API += '&view_mode=feature'
     }
 }
 // Fetch final URL, render in requested renderStyle
@@ -65,6 +74,7 @@ if(renderStyle === "1"){
  * 1 - Grid
  * 2 - Title & Thumbnail
  * 3 - Title Only
+ * 4 - Feature Block
  */
 
 fetch(API).then((response) => response.json()).then((data) => {
@@ -84,7 +94,11 @@ fetch(API).then((response) => response.json()).then((data) => {
         case "3":
             renderTitle(data)
             break;
-    // TO DO - FEATURE
+
+        case "4":
+            renderFeature(data)
+            break;
+
         default:
             renderTeaser(data)
             break;
@@ -232,4 +246,60 @@ function renderTitleThumbnail(data){
     
          // Append
          document.getElementById("ucb-campus-news-article-section").appendChild(readMoreContainer)
+}
+
+
+function renderFeature(data){
+    console.log('I am rendering feature!')
+    console.log(data)
+
+    document.getElementById("ucb-campus-news-article-section").classList += "row"
+    // Iterate
+    for(key in data){
+        // Render number specified by user
+        // First pass generate the feature block, setup the containers
+        if(document.getElementById("ucb-campus-news-article-section").children.length == 0){
+            var article = data[key]
+            // Create article container
+            var featureContainer = document.createElement('div')
+            featureContainer.classList = "campus-news-article-feature col-lg-8 col-md-8 col-sm-8 col-xs-12"
+            featureContainer.innerHTML = article.thumbnail;
+            featureContainer.innerHTML += article.title
+            featureContainer.innerHTML += article.body
+
+            // Create Button 
+            var readMoreLink = document.createElement('a')
+            readMoreLink.classList = 'ucb-campus-news-grid-link mt-5'
+            // Adds filter choices to Read More Link
+            readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+            if(filterUrl != ""){
+                readMoreLink.href += filterUrl
+            }
+            readMoreLink.innerText = 'Read more at CU Boulder Today'
+
+            // Append
+            featureContainer.appendChild(readMoreLink)
+
+            // Append
+            document.getElementById("ucb-campus-news-article-section").appendChild(featureContainer)
+
+            // Create the subfeature container
+            var remainingFeatureContainer = document.createElement('div')
+            remainingFeatureContainer.classList = 'article-feature-block-remaining col-lg-4 col-md-4 col-sm-4 col-xs-12'
+            remainingFeatureContainer.id = "remaining-feature-container"
+            // Append
+            document.getElementById("ucb-campus-news-article-section").appendChild(remainingFeatureContainer)
+        } else {
+            var article = data[key]
+            // Create article container
+            var articleContainer = document.createElement('div')
+            articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex'
+            articleContainer.innerHTML = article.thumbnail;
+            articleContainer.innerHTML += article.title
+
+            // Append
+            document.getElementById("remaining-feature-container").appendChild(articleContainer)
+        }
+    }
+
 }
