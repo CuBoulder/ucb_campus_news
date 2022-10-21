@@ -86,3 +86,18 @@
     height: 80px;
     object-fit: cover;
 }
+
+.campus-news-article-feature > .field-name-field-article-thumbnail{
+    margin-bottom: 10px;
+}
+
+.campus-news-article-feature > a:nth-child(2) {
+    font-weight: BOLD;
+    font-size: 130%;
+    line-height: 1.3;
+}
+
+.campus-news-article-feature > .field-name-body{
+    margin-top: 10px;
+}
+

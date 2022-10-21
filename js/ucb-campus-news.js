@@ -4,7 +4,7 @@ var renderStyle = document.getElementById('ucb-campus-news-block').dataset.rende
 var dataFilters = document.getElementById('ucb-campus-news-block').dataset.filters
 var dataFiltersJSON = JSON.parse(dataFilters)
 // Count for how many articles to render
-var itemCount = document.getElementById('ucb-campus-news-block').dataset.count == "0" ? 5 : 10
+var itemCount = Number(document.getElementById('ucb-campus-news-block').dataset.count) + 3
 
 // Construct API url using json object
 /*
@@ -146,12 +146,10 @@ function renderTeaser(data){
 // Render as Grid
 function renderGrid(data){
     document.getElementById("ucb-campus-news-article-section").classList += "row"
-    // Adjusted count for grid
-    var gridCount = itemCount == 5 ? 6 : 9
     // Iterate
     for(key in data){
         // Render number specified by user
-        if(gridCount > document.getElementById("ucb-campus-news-article-section").children.length){
+        if(itemCount > document.getElementById("ucb-campus-news-article-section").children.length){
             var article = data[key]
             // Create article container
             var articleContainer = document.createElement('div')
@@ -250,9 +248,6 @@ function renderTitleThumbnail(data){
 
 
 function renderFeature(data){
-    console.log('I am rendering feature!')
-    console.log(data)
-
     document.getElementById("ucb-campus-news-article-section").classList += "row"
     // Iterate
     for(key in data){
@@ -290,15 +285,17 @@ function renderFeature(data){
             // Append
             document.getElementById("ucb-campus-news-article-section").appendChild(remainingFeatureContainer)
         } else {
-            var article = data[key]
-            // Create article container
-            var articleContainer = document.createElement('div')
-            articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex'
-            articleContainer.innerHTML = article.thumbnail;
-            articleContainer.innerHTML += article.title
+            if(itemCount > document.getElementById("remaining-feature-container").children.length+1){
+                var article = data[key]
+                // Create article container
+                var articleContainer = document.createElement('div')
+                articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex'
+                articleContainer.innerHTML = article.thumbnail;
+                articleContainer.innerHTML += article.title
 
-            // Append
-            document.getElementById("remaining-feature-container").appendChild(articleContainer)
+                // Append
+                document.getElementById("remaining-feature-container").appendChild(articleContainer)
+            }
         }
     }
 
