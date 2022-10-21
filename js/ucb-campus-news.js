@@ -5,7 +5,6 @@ var dataFilters = document.getElementById('ucb-campus-news-block').dataset.filte
 var dataFiltersJSON = JSON.parse(dataFilters)
 // Count for how many articles to render
 var itemCount = document.getElementById('ucb-campus-news-block').dataset.count == "0" ? 5 : 10
-console.log(`I am logging ${itemCount} articles`)
 
 // Construct API url using json object
 /*

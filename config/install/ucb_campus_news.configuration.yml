@@ -22,5 +22,5 @@ display:
 count:
   label: Items
   options:
-    - 5
-    - 10
+    - 5 (Grid 6)
+    - 10 (Grid 9)
