@@ -5,24 +5,26 @@
  */
 function ucb_campus_news_theme() {
 	$config = \Drupal::config('ucb_campus_news.configuration');
+	$globalConfigVariables = [
+		'siteURI' => $config->get('siteURI'),
+		'baseURI' => $config->get('baseURI'),
+		'path' => $config->get('path'),
+		'display' => $config->get('display'),
+		'count' => $config->get('count'),
+		'filters' => $config->get('filters')
+	];
 	return [
 		'cuboulder_today_filter_form_loader' => [
 			'variables' => [
-				'globalConfig' => [
-					'siteURI' => $config->get('siteURI'),
-					'baseURI' => $config->get('baseURI')
-				],
+				'globalConfig' => $globalConfigVariables,
 				'data' => []
 			]
-			],
-			'ucb_campus_news' => [
-				'variables' => [
-					'globalConfig' => [
-						'siteURI' => $config->get('siteURI'),
-						'baseURI' => $config->get('baseURI')
-					],
-					'data' => []
-				]
-				],
+		],
+		'ucb_campus_news' => [
+			'variables' => [
+				'globalConfig' => $globalConfigVariables,
+				'data' => []
+			]
+		]
 	];
 }

@@ -94,11 +94,11 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 	 */
 	public function blockForm($form, FormStateInterface $form_state) {
 		$buildArray = parent::blockForm($form, $form_state);
+		$this->addConfigSelectToForm($buildArray, 'display');
+		$this->addConfigSelectToForm($buildArray, 'count');
 		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
 		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem)
 			$this->addFilterToForm($buildArray, $moduleFilterConfigurationItem['label'], $moduleFilterConfigurationItem['path'], $filterMachineName);
-		$this->addConfigSelectToForm($buildArray, 'display');
-		$this->addConfigSelectToForm($buildArray, 'count');
 		return $buildArray;
 	}
 
@@ -106,7 +106,9 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 	 * {@inheritdoc}
 	 */
 	public function blockValidate($form, FormStateInterface $form_state) {
-		$form_state->clearErrors(); // TODO: More elegant way to get rid of those unwanted errors and allow for validation of non-filter fields (HARDER than it sounds)
+		$form_state->clearErrors();
+		$this->validateConfiguration('display', $form_state);
+		$this->validateConfiguration('count', $form_state);
 		$formValues = $form_state->getValues();
 		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
 		$filterIncludeLimit = $this->moduleConfiguration->get('filterIncludeLimit') + 1;
@@ -131,14 +133,14 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 			}
 			$form_state->setValue('filter_' . $filterMachineName . '_includes', $includesProcessed);
 		}
-		$this->validateConfiguration('display', $form_state);
-		$this->validateConfiguration('count', $form_state);
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function blockSubmit($form, FormStateInterface $form_state) {
+		$this->configuration['display'] = $form_state->getValue('display');
+		$this->configuration['count'] = $form_state->getValue('count');
 		$moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
 		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
 			$values = $form_state->getValues()['filter_' . $filterMachineName];
@@ -149,8 +151,6 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 				'includes' => $idArray
 			];	
 		}
-		$this->configuration['display'] = $form_state->getValue('display');
-		$this->configuration['count'] = $form_state->getValue('count');
 		parent::blockSubmit($form, $form_state);
 	}
 
