@@ -14,6 +14,15 @@ function ucb_campus_news_theme() {
 				],
 				'data' => []
 			]
-		]
+			],
+			'ucb_campus_news' => [
+				'variables' => [
+					'globalConfig' => [
+						'siteURI' => $config->get('siteURI'),
+						'baseURI' => $config->get('baseURI')
+					],
+					'data' => []
+				]
+				],
 	];
 }

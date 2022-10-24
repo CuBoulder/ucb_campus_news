@@ -1,0 +1,22 @@
+{{ attach_library('ucb_campus_news/ucb-campus-news') }}
+
+{%
+    set classes = [
+    'block',
+    'block-' ~ configuration.provider|clean_class,
+    'block-' ~ plugin_id|clean_class,
+    bundle ? 'block--type-' ~ bundle|clean_class,
+    view_mode ? 'block--view-mode-' ~ view_mode|clean_class
+  ]
+  %}
+  
+  <div{{attributes.addClass(classes)}} data-rendermethod="{{ data.display }}" data-filters="{{data.filters|json_encode}}" data-count="{{data.count}}" id="ucb-campus-news-block">
+          <h2{{title_attributes}}>
+              {{ label }}
+          </h2>
+          {{ content.body }}
+
+      <div id="ucb-campus-news-article-section">
+
+        </div>
+</div>

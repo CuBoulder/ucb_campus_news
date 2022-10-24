@@ -76,8 +76,9 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 			'#data' => [
 				'filters' => $filters, // Passes the include filters on to be avalaible in the block's template
 				'display' => $blockConfiguration['display'],
-				'count' => $blockConfiguration['count']
-			]
+				'count' => $blockConfiguration['count'],
+			],
+			'#theme' => 'ucb_campus_news'
 		];
 	}
 
