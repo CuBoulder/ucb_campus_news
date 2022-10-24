@@ -78,29 +78,37 @@ if(renderStyle === "4"){
  */
 
 fetch(API).then((response) => response.json()).then((data) => {
+
+    // Convert to array and sort by created
+    var dataArr = Object.keys(data).map(key=> {
+        return data[key]
+    })
+
+    dataArr.sort((a,b)=> parseFloat(b.created) - parseFloat(a.created));
+
     switch (renderStyle) {
         case "0":
-            renderTeaser(data)
+            renderTeaser(dataArr)
             break;
 
         case "1":
-            renderGrid(data)
+            renderGrid(dataArr)
             break;
 
         case "2":
-            renderTitleThumbnail(data)
+            renderTitleThumbnail(dataArr)
             break;
 
         case "3":
-            renderTitle(data)
+            renderTitle(dataArr)
             break;
 
         case "4":
-            renderFeature(data)
+            renderFeature(dataArr)
             break;
 
         default:
-            renderTeaser(data)
+            renderTeaser(dataArr)
             break;
     }
 });
@@ -112,12 +120,20 @@ function renderTeaser(data){
         // Render number specifed by user
         if(itemCount > document.getElementById("ucb-campus-news-article-section").children.length){
             var article = data[key]
+
+            // Date conversion
+            var fullDate = new Date(parseInt(article.created)*1000)
+            var month = fullDate.toLocaleDateString("en-us", {month: "short"})
+            var day = fullDate.getUTCDate()
+            var year = fullDate.getUTCFullYear()
+
             // Create article container
             var articleContainer = document.createElement('div')
             articleContainer.classList = "campus-news-article-teaser d-flex"
             articleContainer.innerHTML = article.thumbnail;
             var articleContainerText = document.createElement('div')
             articleContainerText.innerHTML += article.title
+            articleContainerText.innerHTML += `<p class='ucb-campus-news-date'>${month}. ${day}, ${year}</p>`
             articleContainerText.innerHTML += article.body
             articleContainer.appendChild(articleContainerText)
 
