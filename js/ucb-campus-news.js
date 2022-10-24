@@ -176,6 +176,10 @@ function renderGrid(data){
 
             // Append
             document.getElementById("ucb-campus-news-article-section").appendChild(articleContainer)
+            // Fix relative URL on Read More Grid link
+            var relativeURL = articleContainer.getElementsByClassName('more-link')[0].href.split('/today/')[1]
+            var absoluteURL = `https://www.colorado.edu/today/${relativeURL}`
+            articleContainer.getElementsByClassName('more-link')[0].href = absoluteURL
         }
     }
 
