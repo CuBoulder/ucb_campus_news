@@ -22,9 +22,9 @@ var syndicationUnit = dataFiltersJSON.units.filter((id)=> id !=0)
 // Construct the URL
 // Build parameter strings, if respective filter array is not empty. Each array contains ID's and builds each section of the filter piece
 // Format => "?parameter=id+id"
-var categoryParam =  categories.length === 0 ? '' :`category=${categories.join("+")}`
-var audienceParam =  audience.length === 0 ? '' :`audience=${audience.join("+")}`
-var syndicationUnitParam = syndicationUnit.length === 0 ? '' :`unit=${syndicationUnit.join("+")}`
+var categoryParam =  categories.length === 0 ? '' :`category=${categories.join("%2B")}`
+var audienceParam =  audience.length === 0 ? '' :`audience=${audience.join("%2B")}`
+var syndicationUnitParam = syndicationUnit.length === 0 ? '' :`unit=${syndicationUnit.join("%2B")}`
 
 var baseURL = 'https://www.colorado.edu/today/syndicate/article'
 // Adds in filter parameters for API request
