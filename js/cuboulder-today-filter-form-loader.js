@@ -39,10 +39,11 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 		}
 		return node;
 	}
-	function _displayTree(node, parentElement, parentSelected) { 
+	function _displayTree(node, parentElement, parentSelected, trail) { 
+		trail += '-' + node.id;
 		const
 			container = node.formElement = document.createElement('div'),
-			checkboxHTML = checkboxElementHTML.replace(/cuboulder_today_filter_loading|cuboulder-today-filter-loading/g, node.id),
+			checkboxHTML = checkboxElementHTML.replace(/cuboulder_today_filter_loading|cuboulder-today-filter-loading/g, trail),
 			includes = configuration['includes'],
 			isSelected = includes.indexOf(node.id) != -1;
 		container.className = 'cuboulder-today-filter-form-options ' + checkboxesElement.className;
@@ -59,7 +60,7 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 				_uncheckAllChildren(node);
 			}
 		});
-		node.children.forEach((node) => _displayTree(node, container, parentSelected || isSelected));
+		node.children.forEach((node) => _displayTree(node, container, parentSelected || isSelected, trail));
 		parentElement.appendChild(container);
 	}
 	function _checkNode(node) {
@@ -101,7 +102,7 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 			.then((data) => _buildTree(data))
 			.then((tree) => _sortTree(tree))
 			.then((tree) => {
-				tree.children.forEach((node) => _displayTree(node, checkboxesElement, false));
+				tree.children.forEach((node) => _displayTree(node, checkboxesElement, false, '0'));
 				containerElement.removeChild(loaderDiv);
 				loadComplete = true;
 			});
