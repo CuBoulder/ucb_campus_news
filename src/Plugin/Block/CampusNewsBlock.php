@@ -120,11 +120,28 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 				if(sizeof($includesPreprocessed) > $filterIncludeLimit) // Because we're not validating the input to match a predefined array, it's a good idea to at least limit the length.
 					$form_state->setErrorByName('settings][filter_' . $filterMachineName . '][container][checkboxes', 'Too many items selected to filter by ' . $moduleFilterConfigurationItem['label'] . '.');
 				else {
-					foreach($includesPreprocessed as $includeString) {
-						if($includeString != 'cuboulder_today_filter_loading') {
-							$includeInt = intval($includeString);
-							if($includeInt > 0)
-								$includesProcessed[] = $includeInt;
+					$trails = [];
+					foreach($includesPreprocessed as $trailPreprocessed)
+						$trails[] = preg_split('/-/', $trailPreprocessed); // Each trail will consist of a checked item and its parents in order of highest parent to lowest child, e.g. ['0', '20', '22']
+					usort($trails, function($a, $b) { // Order such that smaller trails are iterated over first
+						return sizeof($a) - sizeof($b);
+					});	
+					foreach($trails as $trail) { // Iterate over trails
+						$parentTrailSize = sizeof($trail) - 1;
+						if($parentTrailSize > 0) {
+							$parentIncluded = false;
+							for($parentIdIndex = 0; $parentIdIndex < $parentTrailSize; $parentIdIndex++) {
+								$includeParentId = intval($trail[$parentIdIndex]);
+								if(in_array($includeParentId, $includesProcessed)) {
+									$parentIncluded = true;
+									break;
+								}
+							}
+							if(!$parentIncluded) {
+								$includeInt = intval($trail[$parentTrailSize]);
+								if($includeInt > 0)
+									$includesProcessed[] = $includeInt;	
+							}
 						}
 					}
 				}
@@ -145,7 +162,6 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 		foreach($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
 			$values = $form_state->getValues()['filter_' . $filterMachineName];
 			$idArray = $form_state->getValue('filter_' . $filterMachineName . '_includes') ?? [];
-			// \Drupal::logger('ucb_campus_news')->notice(\Drupal\Component\Serialization\Json::encode($idArray));
 			$this->configuration['filters'][$filterMachineName] = [
 				'enabled' => $values['enable_filter'],
 				'includes' => $idArray
