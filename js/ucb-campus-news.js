@@ -86,7 +86,27 @@ class CampusNewsElement extends HTMLElement {
             // BUILD
             this.build(dataArr,renderStyle, filterUrl, itemCount)
 
-	    })
+	    }).catch((error)=>{
+                console.log(error)
+                // If API error, render Read More @ Today link with Error Message
+                var errorHeader = document.createElement('h4')
+                errorHeader.innerText = 'Unable to load articles - please try again later'
+                var readMoreContainer = document.createElement('div')
+                readMoreContainer.classList = 'ucb-campus-news-grid-link-container'
+                var readMoreLink = document.createElement('a')
+                readMoreLink.classList = 'ucb-campus-news-grid-link'
+                // Adds filter choices to Read More Link
+                readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+                if(filterUrl != ""){
+                    readMoreLink.href += filterUrl
+                }
+                readMoreLink.innerText = 'Read on CU Boulder Today'
+
+                // Append
+                readMoreContainer.appendChild(errorHeader)
+                readMoreContainer.appendChild(readMoreLink)
+                this.appendChild(readMoreContainer)
+        })
     }
 
     // BUILD
