@@ -316,8 +316,8 @@ class CampusNewsElement extends HTMLElement {
                     var remainingFeatureContainer = document.createElement('div')
                     remainingFeatureContainer.classList = 'article-feature-block-remaining col-lg-4 col-md-4 col-sm-4 col-xs-12'
                     remainingFeatureContainer.id = "remaining-feature-container"
-                    this.renderLoader(false)
                     // Append & Hide Loader
+                    this.renderLoader(false)
                     featureBlockContainer.appendChild(remainingFeatureContainer)
                 } else {
                     if(itemCount > this.children[1].children[1].children.length+1){

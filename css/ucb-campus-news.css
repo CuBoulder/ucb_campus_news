@@ -109,7 +109,7 @@
 .ucb-campus-news-error-container{
     text-align: center;
 }
-
+/* Error loader */
 .ucb-loading-data {
     color: #01579b;
   }
