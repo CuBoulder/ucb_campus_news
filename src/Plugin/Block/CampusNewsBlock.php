@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\ucb_campus_news\Plugin\Block\SiteInfoBlock.
+ * Contains \Drupal\ucb_campus_news\Plugin\Block\CampusNewsBlock.
  */
 
 namespace Drupal\ucb_campus_news\Plugin\Block;
@@ -106,7 +106,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 	 * {@inheritdoc}
 	 */
 	public function blockValidate($form, FormStateInterface $form_state) {
-		$form_state->clearErrors();
+		$form_state->clearErrors(); // The filter checkboxes are not included in the form structure and Drupal finds them to be scary, this line clears any errors generated before blockValidate is called
 		$this->validateConfiguration('display', $form_state);
 		$this->validateConfiguration('count', $form_state);
 		$formValues = $form_state->getValues();
@@ -116,28 +116,28 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 			$filterFormValues = $formValues['filter_' . $filterMachineName];
 			$includesProcessed = [];
 			if($filterFormValues['enable_filter']) {
-				$includesPreprocessed = array_keys($filterFormValues['container']['checkboxes']); // This array will contain all the checked items for the filter, and possibly also `cuboulder_today_filter_loading` to spice things up.
-				if(sizeof($includesPreprocessed) > $filterIncludeLimit) // Because we're not validating the input to match a predefined array, it's a good idea to at least limit the length.
+				$includesPreprocessed = array_keys($filterFormValues['container']['checkboxes']); // Contains all the checked item trails for the filter, and possibly also `cuboulder_today_filter_loading` to spice things up.
+				if(sizeof($includesPreprocessed) > $filterIncludeLimit) // It's a good idea to limit the length
 					$form_state->setErrorByName('settings][filter_' . $filterMachineName . '][container][checkboxes', 'Too many items selected to filter by ' . $moduleFilterConfigurationItem['label'] . '.');
 				else {
 					$trails = [];
 					foreach($includesPreprocessed as $trailPreprocessed)
 						$trails[] = preg_split('/-/', $trailPreprocessed); // Each trail will consist of a checked item and its parents in order of highest parent to lowest child, e.g. ['0', '20', '22']
-					usort($trails, function($a, $b) { // Order such that smaller trails are iterated over first
+					usort($trails, function($a, $b) { // Order such that smaller trails are included first
 						return sizeof($a) - sizeof($b);
 					});	
 					foreach($trails as $trail) { // Iterate over trails
 						$parentTrailSize = sizeof($trail) - 1;
-						if($parentTrailSize > 0) {
+						if($parentTrailSize > 0) { // Valid trails will have a size of more than 0
 							$parentIncluded = false;
 							for($parentIdIndex = 0; $parentIdIndex < $parentTrailSize; $parentIdIndex++) {
 								$includeParentId = intval($trail[$parentIdIndex]);
-								if(in_array($includeParentId, $includesProcessed)) {
+								if($includeParentId > 0 && in_array($includeParentId, $includesProcessed)) { // Examine if the parent if already included
 									$parentIncluded = true;
 									break;
 								}
 							}
-							if(!$parentIncluded) {
+							if(!$parentIncluded) { // If an item's parent is not included, add the item. An item with an included parent doesn't need to be added as it will be included in results as part of the parent.
 								$includeInt = intval($trail[$parentTrailSize]);
 								if($includeInt > 0)
 									$includesProcessed[] = $includeInt;	
@@ -145,7 +145,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 						}
 					}
 				}
-				if(sizeof($includesProcessed) == 0) // If the filter is enabled, at least one of the boxes should be checked to include any results at all (or it may do something unexpected and include everything).
+				if(sizeof($includesProcessed) == 0) // If the filter is enabled, at least one of the boxes should be checked to include any results at all (or it may just include everything which doesn't make sense with the filter enabled).
 					$form_state->setErrorByName('settings][filter_' . $filterMachineName . '][container][checkboxes', 'Please select at least one item to filter by ' . $moduleFilterConfigurationItem['label'] . '.');
 			}
 			$form_state->setValue('filter_' . $filterMachineName . '_includes', $includesProcessed);
@@ -190,17 +190,16 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 			'#title' => $this->t($label),
 			'#open' => TRUE
 		];
-		$form['filter_' . $filterName]['enable_filter'] = [
+		$form['filter_' . $filterName]['enable_filter'] = [ // Toggle to enable filter
 			'#type' => 'checkbox',
 			'#title' => $this->t('Filter by ' . $label),
 			'#attributes' => [
-				'class' => [
-					'cuboulder-today-filter-form-show-all-' . $filterName
-				]
+				'class' => ['cuboulder-today-filter-form-enable'],
+				'id' => ['cuboulder_today_filter_form_enable_' . $filterName]
 			],
 			'#default_value' => $blockFilterConfigurationItem['enabled']
 		];
-		$form['filter_' . $filterName]['container'] = [
+		$form['filter_' . $filterName]['container'] = [ // Container for filter checkboxes (only visible if filter is enabled)
 			'#type' => 'container',
 			'#attributes' => [
 				'class' => ['cuboulder-today-filter-form-container'],
@@ -213,7 +212,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 					]
 				]
 			],
-			'loader' => [
+			'loader' => [ // Embeds a custom template to call the loader function for the filter
 				'#theme' => 'cuboulder_today_filter_form_loader',
 				'#data' => [
 					'label' => $label,
@@ -222,7 +221,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
 					'configuration' => $blockFilterConfigurationItem
 				]
 			],
-			'checkboxes' => [
+			'checkboxes' => [ // Filter checkboxes
 				'#type' => 'checkboxes',
 				'#options' => [
 					'cuboulder_today_filter_loading' => $this->t($label)

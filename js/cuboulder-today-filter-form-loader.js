@@ -3,7 +3,7 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
 		containerElement = document.getElementById('cuboulder_today_filter_form_container_' + machineName),
 		checkboxesElement = containerElement.getElementsByTagName('div')[0],
 		checkboxElementHTML = checkboxesElement.innerHTML, // Stores the HTML of a checkbox to duplicate it later
-		showAllElement = document.querySelector('.cuboulder-today-filter-form-show-all-' + machineName);
+		showAllElement = document.getElementById('cuboulder_today_filter_form_enable_' + machineName);
 	let loadRequested = false, loadComplete = false;
 	function _buildTree(data) {
 		const root = {id: 0, parents: [], children: [], sorted: false, formElement: null}, tidMap = new Map();
