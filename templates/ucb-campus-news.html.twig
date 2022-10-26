@@ -11,8 +11,14 @@
   %}
   
   <campus-news{{attributes.addClass(classes)}} rendermethod="{{ data.display }}" filters="{{data.filters|json_encode}}" count="{{data.count}}" id="ucb-campus-news-block">
-          <h2{{title_attributes}}>
+          <div class="campus-news-block-head">
+            <h2{{title_attributes}}>
               {{ label }}
           </h2>
           {{ content.body }}
+          </div>
   </campus-news>
+    {# Loading message #}
+    <div id="ucb-al-loading" class="ucb-list-msg ucb-loading-data">
+        <i class="fas fa-spinner fa-3x fa-pulse"></i>
+      </div>
