@@ -1,6 +1,8 @@
 class CampusNewsElement extends HTMLElement {
 	constructor() {
+
 		super();
+        this.renderLoader(false)
 		var renderStyle = this.getAttribute('rendermethod');
         var dataFilters = this.getAttribute('filters');
         var itemCount = parseInt(this.getAttribute('count'))+3;
@@ -68,7 +70,6 @@ class CampusNewsElement extends HTMLElement {
         * 3 - Title Only
         * 4 - Feature Block
         */
-
         fetch(API).then((response) => response.json()).then((data) => {
 
             // Convert to array and sort by created
@@ -77,14 +78,41 @@ class CampusNewsElement extends HTMLElement {
             })
             dataArr.sort((a,b)=> parseFloat(b.created) - parseFloat(a.created));
 
+            // Error - no data
+            if(dataArr.length===0){
+                renderStyle = 'error'
+            }
+
             // BUILD
             this.build(dataArr,renderStyle, filterUrl, itemCount)
 
-	    })
+	    }).catch((error)=>{
+                console.log(error)
+                // If API error, render Read More @ Today link with Error Message
+                var errorHeader = document.createElement('h4')
+                errorHeader.innerText = 'Unable to load articles - please try again later'
+                var readMoreContainer = document.createElement('div')
+                readMoreContainer.classList = 'ucb-campus-news-grid-link-container'
+                var readMoreLink = document.createElement('a')
+                readMoreLink.classList = 'ucb-campus-news-grid-link'
+                // Adds filter choices to Read More Link
+                readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read'
+                if(filterUrl != ""){
+                    readMoreLink.href += filterUrl
+                }
+                readMoreLink.innerText = 'Read on CU Boulder Today'
+
+                // Append
+                readMoreContainer.appendChild(errorHeader)
+                readMoreContainer.appendChild(readMoreLink)
+                this.appendChild(readMoreContainer)
+        })
     }
 
     // BUILD
 	build(dataArr, renderStyle, filterUrl, itemCount) {
+        this.renderLoader(true)
+
         switch (renderStyle) {
             case "0":
                 this.renderTeaser(dataArr, filterUrl, itemCount)
@@ -105,6 +133,9 @@ class CampusNewsElement extends HTMLElement {
             case "4":
                 this.renderFeature(dataArr, filterUrl, itemCount)
                 break;
+
+            case 'error':
+                this.renderError()
     
             default:
                 this.renderTeaser(dataArr, filterUrl, itemCount)
@@ -134,6 +165,8 @@ class CampusNewsElement extends HTMLElement {
                 articleContainerText.innerHTML += article.body
                 articleContainer.appendChild(articleContainerText)
 
+                // Hide loader
+                this.renderLoader(false)
                 // Append
                 this.appendChild(articleContainer)
             }
@@ -179,7 +212,9 @@ class CampusNewsElement extends HTMLElement {
                 articleContainer.getElementsByClassName('more-link')[0].href = absoluteURL
             }
         })
-
+        // Hide loader
+        this.renderLoader(false)
+        // Append grid
         this.appendChild(gridContainer)
 
         // After articles, create Read More link (Grid style)
@@ -208,7 +243,8 @@ class CampusNewsElement extends HTMLElement {
                 var articleContainer = document.createElement('div')
                 articleContainer.classList = 'ucb-campus-news-title-only'
                 articleContainer.innerHTML += article.title
-
+                // Hide loader
+                this.renderLoader(false)
                 // Append
                 this.appendChild(articleContainer)
             }
@@ -241,7 +277,8 @@ class CampusNewsElement extends HTMLElement {
                 articleContainer.innerHTML = article.thumbnail;
                 articleContainer.innerHTML += article.title
 
-                // Append
+                // Hide loader and Append
+                this.renderLoader(false)
                 this.appendChild(articleContainer)
             }
         })
@@ -299,7 +336,8 @@ class CampusNewsElement extends HTMLElement {
                     var remainingFeatureContainer = document.createElement('div')
                     remainingFeatureContainer.classList = 'article-feature-block-remaining col-lg-4 col-md-4 col-sm-4 col-xs-12'
                     remainingFeatureContainer.id = "remaining-feature-container"
-                    // Append
+                    // Append & Hide Loader
+                    this.renderLoader(false)
                     featureBlockContainer.appendChild(remainingFeatureContainer)
                 } else {
                     if(itemCount > this.children[1].children[1].children.length+1){
@@ -315,7 +353,37 @@ class CampusNewsElement extends HTMLElement {
                     }
                 }
             })
+    }
+    // Error - no results from API
+    renderError(){
+        // Create error message
+        var errorContainer = document.createElement('div')
+        errorContainer.classList = 'ucb-campus-news-error-container'
+        var errorMessage = document.createElement('h3')
+        errorMessage.classList = 'ucb-campus-news-error-message'
+        
+        errorMessage.innerText = 'Error retrieving results from Colorado Today - check filters and try again'
+        // Remove loader, render error
+        this.renderLoader(false)
+        // Append
+        errorContainer.appendChild(errorMessage)
+        this.appendChild(errorContainer)
+        
+        // Remove Read More Link
+        this.children.length = 2
+
+    }
+    // Render Loader
+    renderLoader(bool){
+        var loader = this.parentElement.getElementsByClassName('ucb-list-msg ucb-loading-data')[0]
+        
+        if (bool){
+            loader.style.display = "block"
+        } else {
+            loader.style.display = 'none'
         }
+        
+    }
 }
 
 customElements.define('campus-news', CampusNewsElement);
