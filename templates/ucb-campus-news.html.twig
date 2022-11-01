@@ -1,24 +1,12 @@
 {{ attach_library('ucb_campus_news/ucb-campus-news') }}
 
 {%
-    set classes = [
-    'block',
-    'block-' ~ configuration.provider|clean_class,
-    'block-' ~ plugin_id|clean_class,
-    bundle ? 'block--type-' ~ bundle|clean_class,
-    view_mode ? 'block--view-mode-' ~ view_mode|clean_class
-  ]
-  %}
-  
-  <campus-news{{attributes.addClass(classes)}} rendermethod="{{ data.display }}" filters="{{data.filters|json_encode}}" count="{{data.count}}" id="ucb-campus-news-block">
-          <div class="campus-news-block-head">
-            <h2{{title_attributes}}>
-              {{ label }}
-          </h2>
-          {{ content.body }}
-          </div>
-  </campus-news>
-    {# Loading message - #}
-    <div id="ucb-al-loading" class="ucb-list-msg ucb-loading-data">
-        <i class="fas fa-spinner fa-3x fa-pulse"></i>
-      </div>
+	set classes = []
+%}
+
+<campus-news{{attributes.addClass(classes)}} rendermethod="{{ data.display }}" filters="{{data.filters|json_encode}}" count="{{data.count}}">
+	{# Loading message #}
+	<div class="ucb-list-msg ucb-loading-data text-center">
+		<i class="fas fa-spinner fa-3x fa-pulse"></i>
+	</div>
+</campus-news>

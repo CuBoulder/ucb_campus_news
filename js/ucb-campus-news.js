@@ -375,7 +375,7 @@ class CampusNewsElement extends HTMLElement {
     }
     // Render Loader
     renderLoader(bool){
-        var loader = this.parentElement.getElementsByClassName('ucb-list-msg ucb-loading-data')[0]
+        var loader = this.getElementsByClassName('ucb-list-msg ucb-loading-data')[0]
         
         if (bool){
             loader.style.display = "block"
