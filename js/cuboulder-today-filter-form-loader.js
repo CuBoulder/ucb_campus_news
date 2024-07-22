@@ -2,7 +2,7 @@ function cuboulderTodayFilterFormLoader(drupal, siteURI, baseURI, label, path, m
   const
     containerElement = document.getElementById('cuboulder_today_filter_form_container_' + machineName),
     checkboxesElement = containerElement.getElementsByTagName('div')[0],
-		// Stores the HTML of a checkbox to duplicate it later.
+    // Stores the HTML of a checkbox to duplicate it later.
     checkboxElementHTML = checkboxesElement.innerHTML,
     showAllElement = document.getElementById('cuboulder_today_filter_form_enable_' + machineName);
   let loadRequested = false, loadComplete = false;

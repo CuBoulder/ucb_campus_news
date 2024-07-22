@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides the definition of the Campus News Block.
  *
  * Campus News Block is a block which enables displaying news stories from CU
- * Boulder today.
+ * Boulder Today.
  *
  * @Block(
  *   id = "campus_news",
