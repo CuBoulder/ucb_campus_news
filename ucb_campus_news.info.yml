@@ -2,7 +2,7 @@ name: CU Boulder Campus News
 description: 'Provides a block for CU Boulder campus news.'
 core_version_requirement: '^9.5 || ^10'
 type: module
-version: '1.0'
+version: '1.0.1'
 package: CU Boulder
 dependencies:
   - block

@@ -1,30 +1,35 @@
 <?php
 
- /**
+/**
+ * @file
+ * Contains functional hooks used by the CU Boulder Campus News module.
+ */
+
+/**
  * Implements hook_theme().
  */
 function ucb_campus_news_theme() {
-	$config = \Drupal::config('ucb_campus_news.configuration');
-	$globalConfigVariables = [
-		'siteURI' => $config->get('siteURI'),
-		'baseURI' => $config->get('baseURI'),
-		'path' => $config->get('path'),
-		'display' => $config->get('display'),
-		'count' => $config->get('count'),
-		'filters' => $config->get('filters')
-	];
-	return [
-		'cuboulder_today_filter_form_loader' => [
-			'variables' => [
-				'globalConfig' => $globalConfigVariables,
-				'data' => []
-			]
-		],
-		'ucb_campus_news' => [
-			'variables' => [
-				'globalConfig' => $globalConfigVariables,
-				'data' => []
-			]
-		]
-	];
+  $config = \Drupal::config('ucb_campus_news.configuration');
+  $globalConfigVariables = [
+    'siteURI' => $config->get('siteURI'),
+    'baseURI' => $config->get('baseURI'),
+    'path' => $config->get('path'),
+    'display' => $config->get('display'),
+    'count' => $config->get('count'),
+    'filters' => $config->get('filters'),
+  ];
+  return [
+    'cuboulder_today_filter_form_loader' => [
+      'variables' => [
+        'globalConfig' => $globalConfigVariables,
+        'data' => [],
+      ],
+    ],
+    'ucb_campus_news' => [
+      'variables' => [
+        'globalConfig' => $globalConfigVariables,
+        'data' => [],
+      ],
+    ],
+  ];
 }

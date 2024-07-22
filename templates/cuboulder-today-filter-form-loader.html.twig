@@ -1,12 +1,12 @@
 {{ attach_library('ucb_campus_news/cuboulder_today_filter_form_loader') }}
 <script type="text/javascript">
-(function(siteURI, baseURI, label, path, machineName, configuration) {
-	if (/complete|interactive|loaded/.test(document.readyState)) {
-		cuboulderTodayFilterFormLoader(Drupal, siteURI, baseURI, label, path, machineName, configuration);
-	} else {
-		window.addEventListener('DOMContentLoaded', function() {
-			cuboulderTodayFilterFormLoader(Drupal, siteURI, baseURI, label, path, machineName, configuration);
-		});
-	}
-})('{{ globalConfig.siteURI }}', '{{ globalConfig.baseURI }}', '{{ data.label }}', '{{ data.path }}', '{{ data.machineName }}', {{ data.configuration|json_encode()|raw }})
+  (function(siteURI, baseURI, label, path, machineName, configuration) {
+    if (/complete|interactive|loaded/.test(document.readyState)) {
+      cuboulderTodayFilterFormLoader(Drupal, siteURI, baseURI, label, path, machineName, configuration);
+    } else {
+      window.addEventListener('DOMContentLoaded', function() {
+        cuboulderTodayFilterFormLoader(Drupal, siteURI, baseURI, label, path, machineName, configuration);
+      });
+    }
+  })('{{ globalConfig.siteURI }}', '{{ globalConfig.baseURI }}', '{{ data.label }}', '{{ data.path }}', '{{ data.machineName }}', {{ data.configuration|json_encode()|raw }})
 </script>
