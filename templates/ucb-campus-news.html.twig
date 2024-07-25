@@ -1,12 +1,11 @@
 {{ attach_library('ucb_campus_news/ucb-campus-news') }}
-
-{%
-	set classes = []
-%}
-
-<campus-news{{attributes.addClass(classes)}} rendermethod="{{ data.display }}" filters="{{data.filters|json_encode}}" count="{{data.count}}">
-	{# Loading message #}
-	<div class="ucb-list-msg ucb-loading-data text-center">
-		<i class="fas fa-spinner fa-3x fa-pulse"></i>
-	</div>
+<campus-news{{
+    attributes.setAttribute('rendermethod', data.display)
+      .setAttribute('filters', data.filters|json_encode)
+      .setAttribute('count', data.count)
+  }}>
+  {# Loading message #}
+  <div class="ucb-list-msg ucb-loading-data text-center">
+    <i class="fa-solid fa-spinner fa-3x fa-pulse"></i>
+  </div>
 </campus-news>
