@@ -6,3 +6,4 @@ version: '1.1'
 package: CU Boulder
 dependencies:
   - block
+  - ucb_styled_block
