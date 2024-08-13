@@ -3,11 +3,12 @@
 namespace Drupal\ucb_campus_news\Plugin\Block;
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\ucb_styled_block\Plugin\Block\StyledBlock;
+use Drupal\ucb_styled_block\StyledBlockServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -21,7 +22,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   admin_label = @Translation("Campus News"),
  * )
  */
-class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterface {
+class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInterface {
 
   /**
    * Contains the configuration parameters for this module.
@@ -39,11 +40,14 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
    *   The plugin ID for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
+   * @param \Drupal\ucb_styled_block\StyledBlockServiceInterface $styledBlockService
+   *   The styled block service.
    * @param \Drupal\Core\Config\ImmutableConfig $moduleConfiguration
    *   Contains the configuration parameters for this module.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, ImmutableConfig $moduleConfiguration) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, StyledBlockServiceInterface $styledBlockService, ImmutableConfig $moduleConfiguration) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $styledBlockService);
+    $this->styledBlockService = $styledBlockService;
     $this->moduleConfiguration = $moduleConfiguration;
   }
 
@@ -55,6 +59,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
       $configuration,
       $plugin_id,
       $plugin_definition,
+      $container->get('ucb_styled_block.service'),
       $container->get('config.factory')->get('ucb_campus_news.configuration')
     );
   }
@@ -63,13 +68,18 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return ['filters' => [], 'display' => 0, 'count' => 0];
+    $defaultConfiguration = parent::defaultConfiguration();
+    $defaultConfiguration['filters'] = [];
+    $defaultConfiguration['display'] = 0;
+    $defaultConfiguration['count'] = 0;
+    return $defaultConfiguration;
   }
 
   /**
    * {@inheritdoc}
    */
   public function build() {
+    $buildArray = [];
     $filters = [];
     $blockConfiguration = $this->getConfiguration();
     $blockFilterConfiguration = $blockConfiguration['filters'];
@@ -81,16 +91,14 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
       ];
       $filters[$filterMachineName] = $blockFilterConfigurationItem['enabled'] ? $blockFilterConfigurationItem['includes'] : [0];
     }
-    return [
-      '#data' => [
-        // Passes the include filters on to be avalaible in the block's
-        // template.
-        'filters' => $filters,
-        'display' => $blockConfiguration['display'],
-        'count' => $blockConfiguration['count'],
-      ],
-      '#theme' => 'ucb_campus_news',
+    $buildArray['#data'] = [
+      // Passes the include filters on to be available in the block's template.
+      'filters' => $filters,
+      'display' => $blockConfiguration['display'],
+      'count' => $blockConfiguration['count'],
     ];
+    $buildArray['#theme'] = 'ucb_campus_news';
+    return $buildArray;
   }
 
   /**
@@ -104,14 +112,14 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
    * {@inheritdoc}
    */
   public function blockForm($form, FormStateInterface $form_state) {
-    $buildArray = parent::blockForm($form, $form_state);
+    $buildArray = [];
     $this->addConfigSelectToForm($buildArray, 'display');
     $this->addConfigSelectToForm($buildArray, 'count');
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
       $this->addFilterToForm($buildArray, $moduleFilterConfigurationItem['label'], $moduleFilterConfigurationItem['path'], $filterMachineName);
     }
-    return $buildArray;
+    return parent::blockForm($buildArray, $form_state);
   }
 
   /**
@@ -124,7 +132,7 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
     $form_state->clearErrors();
     $this->validateConfiguration('display', $form_state);
     $this->validateConfiguration('count', $form_state);
-    $formValues = $form_state->getValues();
+    $formValues = $form_state->getValues()['tabs']['content'];
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     $filterIncludeLimit = $this->moduleConfiguration->get('filterIncludeLimit') + 1;
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
@@ -191,11 +199,12 @@ class CampusNewsBlock extends BlockBase implements ContainerFactoryPluginInterfa
    * {@inheritdoc}
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
-    $this->configuration['display'] = $form_state->getValue('display');
-    $this->configuration['count'] = $form_state->getValue('count');
+    $formValues = $form_state->getValues()['tabs']['content'];
+    $this->configuration['display'] = $formValues['display'];
+    $this->configuration['count'] = $formValues['count'];
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
-      $values = $form_state->getValues()['filter_' . $filterMachineName];
+      $values = $formValues['filter_' . $filterMachineName];
       $idArray = $form_state->getValue('filter_' . $filterMachineName . '_includes') ?? [];
       $this->configuration['filters'][$filterMachineName] = [
         'enabled' => $values['enable_filter'],
