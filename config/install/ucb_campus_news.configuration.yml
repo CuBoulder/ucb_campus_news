@@ -1,13 +1,13 @@
 filters:
   categories:
-    label: 'Category'
-    taxonomy: 'category'
+    label: Category
+    taxonomy: category
   audiences:
-    label: 'Audience'
-    taxonomy: 'syndication_audience'
+    label: Audience
+    taxonomy: syndication_audience
   units:
-    label: 'Unit'
-    taxonomy: 'syndication_unit'
+    label: Unit
+    taxonomy: syndication_unit
 filterIncludeLimit: 128
 display:
   label: Display
