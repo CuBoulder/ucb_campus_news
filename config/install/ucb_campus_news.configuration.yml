@@ -1,16 +1,13 @@
-siteURI: 'https://www.colorado.edu/today/syndicate/article/read'
-baseURI: 'https://www.colorado.edu/today/syndicate/article'
-path: '/'
 filters:
   categories:
     label: 'Category'
-    path: '/options/category'
+    taxonomy: 'category'
   audiences:
     label: 'Audience'
-    path: '/options/syndication_audience'
+    taxonomy: 'syndication_audience'
   units:
     label: 'Unit'
-    path: '/options/syndication_unit'
+    taxonomy: 'syndication_unit'
 filterIncludeLimit: 128
 display:
   label: Display

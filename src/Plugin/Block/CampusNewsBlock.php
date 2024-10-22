@@ -117,7 +117,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
     $this->addConfigSelectToForm($buildArray, 'count');
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
-      $this->addFilterToForm($buildArray, $moduleFilterConfigurationItem['label'], $moduleFilterConfigurationItem['path'], $filterMachineName);
+      $this->addFilterToForm($buildArray, $moduleFilterConfigurationItem['label'], $moduleFilterConfigurationItem['taxonomy'], $filterMachineName);
     }
     return parent::blockForm($buildArray, $form_state);
   }
@@ -221,12 +221,12 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
    *   The block configuration form render array.
    * @param string $label
    *   The display label of the filter.
-   * @param string $path
-   *   The API path of the filter relative to the baseURI.
+   * @param string $taxonomy
+   *   The name of the taxonomy term this filter is associated with.
    * @param string $filterName
    *   The machine name of the filter.
    */
-  private function addFilterToForm(array &$form, $label, $path, $filterName) {
+  private function addFilterToForm(array &$form, $label, $taxonomy, $filterName) {
     $blockFilterConfiguration = $this->configuration['filters'];
     $blockFilterConfigurationItem = array_key_exists($filterName, $blockFilterConfiguration) ? $blockFilterConfiguration[$filterName] : [
       'enabled' => 0,
@@ -266,7 +266,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
         '#theme' => 'cuboulder_today_filter_form_loader',
         '#data' => [
           'label' => $label,
-          'path' => $path,
+          'taxonomy' => $taxonomy,
           'machineName' => $filterName,
           'configuration' => $blockFilterConfigurationItem,
         ],
