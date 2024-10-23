@@ -1,7 +1,33 @@
 /**
- * @typedef {{ id: number, name: string, parents: TaxonomyTreeNode[], children: TaxonomyTreeNode[], weight: number, sorted: boolean, formElement: HTMLElement | null }} TaxonomyTreeNode
+ * @file Contains helper code for fetching and displaying filter forms for the
+ * Campus News block.
+ *
+ * @typedef {{
+ *   id: number;
+ *   name: string;
+ *   parents: TaxonomyTreeNode[];
+ *   children: TaxonomyTreeNode[];
+ *   weight: number;
+ *   sorted: boolean;
+ *   formElement: HTMLElement | null;
+ * }} TaxonomyTreeNode
+ * @typedef {{ enabled: number; includes: []; }} FilterConfiguration
  */
 
+/**
+ * Displays a taxonomy-based filter form for the CU Boulder Campus News block.
+ *
+ * @param {Drupal} drupal
+ *   The Drupal JavaScript API.
+ * @param {string} label
+ *   The display label of the filter.
+ * @param {string} taxonomy 
+ *   The name of the taxonomy term this filter is associated with.
+ * @param {string} machineName
+ *   The machine name of the filter.
+ * @param {FilterConfiguration} configuration
+ *   The configuration of the filter.
+ */
 function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, configuration) {
   const
     containerElement = document.getElementById('cuboulder_today_filter_form_container_' + machineName),
@@ -18,22 +44,32 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    *   The node.
    */
   function createRootNode() {
-    return { id: 0, name: 'ROOT', parents: [], children: [], weight: 0, sorted: false, formElement: null };
+    return {
+      id: 0,
+      name: 'ROOT',
+      parents: [],
+      children: [],
+      weight: 0,
+      sorted: false,
+      formElement: null
+    };
   }
 
   /**
-   * Sorts each level of the taxonomy tree by the weight of each node.
+   * Sorts child nodes by the weight of each node.
    *
    * @param {TaxonomyTreeNode} node
-   *   The root node of the tree.
+   *   The node of the tree at the current level.
    * @returns
-   *   The root node of the tree with child nodes sorted.
+   *   The node of the tree with child nodes sorted.
    */
   function sortTree(node) {
-    if(!node.sorted) {
+    if (!node.sorted) {
       node.sorted = true;
-      if(node.children) {
-        node.children.sort((nodeA, nodeB) => nodeA.weight - nodeB.weight).forEach(node => sortTree(node));
+      if (node.children) {
+        node.children
+          .sort((nodeA, nodeB) => nodeA.weight - nodeB.weight)
+          .forEach(node => sortTree(node));
       }
     }
     return node;
@@ -54,7 +90,7 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    * @param {string} trail
    *   The trail followed.
    */
-  function displayTree(node, parentElement, parentSelected, trail) { 
+  function displayTree(node, parentElement, parentSelected, trail) {
     trail += '-' + node.id;
     const
       container = node.formElement = document.createElement('div'),
@@ -65,11 +101,11 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
     container.innerHTML = checkboxHTML;
     const checkbox = container.querySelector('input[type="checkbox"]'), label = container.querySelector('label');
     label.innerText = node.name;
-    if(isSelected || parentSelected) {
+    if (isSelected || parentSelected) {
       checkbox.setAttribute('checked', 'checked');
     }
-    checkbox.addEventListener('change', function(event) {
-      if(event.currentTarget.checked) {
+    checkbox.addEventListener('change', event => {
+      if (event.currentTarget.checked) {
         checkAllChildren(node);
       } else {
         uncheckAllParents(node);
@@ -88,7 +124,7 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    */
   function checkNode(node) {
     const formElement = node.formElement;
-    if(formElement) {
+    if (formElement) {
       node.formElement.querySelector('input[type="checkbox"]').checked = true;
     }
   }
@@ -101,7 +137,7 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    */
   function uncheckNode(node) {
     const formElement = node.formElement;
-    if(formElement) {
+    if (formElement) {
       node.formElement.querySelector('input[type="checkbox"]').checked = false;
     }
   }
@@ -155,37 +191,91 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
     containerElement.insertBefore(loaderDiv, containerElement.childNodes[0]);
     checkboxesElement.innerHTML = '';
 
-    let tree;
+    let root;
     try {
-      tree = await jsonAPILoadTree();
+      root = await jsonAPILoadTree();
     } catch (exception) {
-      tree = await legacyLoadTree();
+      console.error(exception);
+      console.warn('Call to JSON API failed, trying legacy API.');
+      root = await legacyLoadTree();
     }
 
-    tree.children.forEach(node => displayTree(node, checkboxesElement, false, '0'));
+    root.children.forEach(node => displayTree(node, checkboxesElement, false, '0'));
     containerElement.removeChild(loaderDiv);
     loadComplete = true;
   }
 
   /**
+   * Fetches data from the JSON API.
+   *
+   * @param {string} apiURL
+   *   The url of the API.
+   * @returns
+   *   The raw data from the API.
+   */
+  async function jsonAPIFetchData(apiURL) {
+    const response = await fetch(apiURL);
+    const json = await response.json();
+
+    // Fetching multiple pages may be necessary due to JSON API result limits.
+    // Checks if there is a next page.
+    if (json['links']['next']) {
+      return json['data'].concat(await jsonAPIFetchData(json['links']['next']['href']));
+    }
+
+    return json['data'];
+  }
+
+  /**
    * Fetches a taxonomy tree using the Today site JSON API.
    *
-   * @return {TaxonomyTreeNode}
+   * @returns {TaxonomyTreeNode}
    *   The root node of the taxonomy tree.
    */
   async function jsonAPILoadTree() {
-    const response = await fetch('https://live-ucbprod-today.pantheonsite.io/jsonapi/taxonomy_term/' + taxonomy);
-    const data = await response.json();
+    // TODO: Change to production URL.
+    const data = await jsonAPIFetchData('https://live-ucbprod-today.pantheonsite.io/jsonapi/taxonomy_term/' + taxonomy);
 
-    // TODO: Implement the API handling logic here.
+    const root = createRootNode(), tidMap = new Map();
+    tidMap.set(0, root);
 
-    throw new Error('Not yet implemented.');
+    // Creates the nodes and populates the tid map.
+    data.forEach(item => {
+      const id = item['attributes']['drupal_internal__tid'];
+      const node = {
+        id,
+        uuid: item['id'],
+        name: item['attributes']['name'],
+        description: item['attributes']['description'],
+        weight: item['attributes']['weight'],
+        parents: [],
+        children: [],
+        sorted: false,
+        formElement: null
+      };
+      tidMap.set(id, node);
+    });
+
+    // Builds the tree.
+    data.forEach(item => {
+      const id = item['attributes']['drupal_internal__tid'];
+      const node = tidMap.get(id);
+      item['relationships']['parent']['data'].forEach(parent => {
+        const parentNode = tidMap.get(parent['id'] === 'virtual' ? 0 : parent['meta']['drupal_internal__target_id']);
+        if (parentNode) {
+          node.parents.push(parentNode);
+          parentNode.children.push(node);
+        }
+      });
+    });
+
+    return sortTree(root);
   }
 
   /**
    * Fetches a taxonomy tree using the legacy (Drupal 7) Today site API.
    *
-   * @return {TaxonomyTreeNode}
+   * @returns {TaxonomyTreeNode}
    *   The root node of the taxonomy tree.
    */
   async function legacyLoadTree() {
@@ -194,10 +284,10 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
 
     const root = createRootNode(), tidMap = new Map();
     tidMap.set(0, root);
-    data.sort((itemA, itemB) => itemA['depth'] - itemB['depth']).forEach((item) => {
+    data.sort((itemA, itemB) => itemA['depth'] - itemB['depth']).forEach(item => {
       const id = parseInt(item['tid']);
       const node = {
-        id: id,
+        id,
         uuid: item['uuid'],
         name: item['name'],
         description: item['description'],
@@ -208,9 +298,9 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
         formElement: null
       };
       tidMap.set(id, node);
-      item['parents'].forEach((parentId) => {
+      item['parents'].forEach(parentId => {
         const parentNode = tidMap.get(parseInt(parentId));
-        if(parentNode) {
+        if (parentNode) {
           node.parents.push(parentNode);
           parentNode.children.push(node);
         }
@@ -220,11 +310,11 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
     return sortTree(root);
   }
 
-  if(configuration.enabled || showAllElement.checked) {
+  if (configuration.enabled || showAllElement.checked) {
     load();
   } else {
     showAllElement.addEventListener('change', event => {
-      if(!loadRequested && event.currentTarget.checked) {
+      if (!loadRequested && !loadComplete && event.currentTarget.checked) {
         load();
       }
     });
