@@ -70,14 +70,42 @@
 
     const response = await fetch(baseURL + '/jsonapi/node/ucb_article?' + params);
     const json = await response.json();
+    const mediaImages = json['included'].filter(item => item['type'] === 'media--image');
+    const files = json['included'].filter(item => item['type'] === 'file--file');
 
     return {
       articleHTML: json['data'].map(article => {
         const articleURL = baseURL + safe(article['attributes']['path']['alias']);
+        let articleThumbnailURL;
+        let articleThumbnailAlt;
+        if (renderStyle !== '3' && article['relationships']['field_ucb_article_thumbnail']['data']) {
+          // Article has a thumbnail image and the Title [only] render style
+          // isn't selected.
+          let imageStyle;
+          if (renderStyle === '1' || (renderStyle === '4' && article === json['data'][0])) {
+            // Uses wide images for the Grid render style, or the first article
+            // in the Feature render style.
+            imageStyle = 'focal_image_wide';
+          } else {
+            // Uses square images for all other cases.
+            imageStyle = 'focal_image_square';
+          }
+          const mediaImage = mediaImages.find(mediaImage =>
+            mediaImage['id'] === article['relationships']['field_ucb_article_thumbnail']['data']['id']
+          )['relationships']['field_media_image']['data'];
+          // Fetches the appropriate image style source URL.
+          articleThumbnailURL = files.find(file =>
+            file['id'] === mediaImage['id']
+          )['links'][imageStyle]['href'];
+          articleThumbnailAlt = mediaImage['meta']['alt'];
+        }
         return {
           title: `<a href="${articleURL}">${safe(article['attributes']['title'])}</a>`,
-          // TODO: Add thumbnail with the correct image style.
-          thumbnail: '',
+          thumbnail: articleThumbnailURL ? '<div class="campus-news-article-thumbnail">'
+            + `<a href="${articleURL}">`
+            + `<img class="campus-news-article-thumbnail-image" src="${safe(articleThumbnailURL)}" alt="${safe(articleThumbnailAlt)}">`
+            + `</a>`
+            + '</div>' : '',
           summary: '<p class="campus-news-article-summary">'
             + safe(article['attributes']['field_ucb_article_summary'])
             + (renderStyle === '1' ? ` <a href="${articleURL}">Read more</a>` : '')
@@ -270,7 +298,7 @@
         renderStyle = 'error';
       }
 
-      this.render(data.articleHTML, renderStyle, data.readMoreURL, itemCount);      
+      this.render(data.articleHTML, renderStyle, data.readMoreURL, itemCount);
     }
 
     /**
