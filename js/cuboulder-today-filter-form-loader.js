@@ -210,6 +210,7 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    *
    * @param {string} apiURL
    *   The url of the API.
+   *
    * @returns
    *   The raw data from the API.
    */
