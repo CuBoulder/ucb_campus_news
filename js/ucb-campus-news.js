@@ -56,7 +56,7 @@
     // TODO: Change to production URL.
     const baseURL = 'https://live-ucbprod-today.pantheonsite.io';
     const params = new URLSearchParams({
-      'include[node--ucb_article]': 'uid,title,created,field_ucb_article_summary,field_ucb_article_thumbnail',
+      'include[node--ucb_article]': 'uid,title,created,field_ucb_article_thumbnail,field_ucb_article_summary',
       'include': 'field_ucb_article_thumbnail.field_media_image',
       'fields[file--file]': 'uri,url',
       'sort[sort-created][path]': 'created',
@@ -76,8 +76,7 @@
     return {
       articleHTML: json['data'].map(article => {
         const articleURL = baseURL + safe(article['attributes']['path']['alias']);
-        let articleThumbnailURL;
-        let articleThumbnailAlt;
+        let articleThumbnailURL, articleThumbnailAlt;
         if (renderStyle !== '3' && article['relationships']['field_ucb_article_thumbnail']['data']) {
           // Article has a thumbnail image and the Title [only] render style
           // isn't selected.
@@ -220,8 +219,6 @@
    */
   function safe(text) {
     return text
-      // Strips unsupported MathML tags.
-      .replace(/<\/?mml[^>]*>/gi, '')
       // Escapes HTML characters.
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -246,7 +243,8 @@
      * Loads all articles for this Campus News block.
      */
     async loadArticles() {
-      this.renderLoader(false);
+      this.renderLoader(true);
+
       let renderStyle = this.getAttribute('rendermethod');
       const dataFilters = this.getAttribute('filters');
       const itemCount = parseInt(this.getAttribute('count')) + 3;
@@ -260,12 +258,12 @@
 
       // Fetch final URL, render in requested renderStyle
       /*
-      * 0 - Teaser
-      * 1 - Grid
-      * 2 - Title & Thumbnail
-      * 3 - Title Only
-      * 4 - Feature Block
-      */
+       * 0 - Teaser
+       * 1 - Grid
+       * 2 - Title & Thumbnail
+       * 3 - Title Only
+       * 4 - Feature Block
+       */
       let data;
       try {
         data = await jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount);
@@ -315,36 +313,29 @@
      *   configuration.
      */
     render(dataArr, renderStyle, readMoreURL, itemCount) {
-      this.renderLoader(true)
-
       switch (renderStyle) {
         case '0':
           this.renderTeaser(dataArr, readMoreURL, itemCount);
           break;
-
         case '1':
           this.renderGrid(dataArr, readMoreURL, itemCount);
           break;
-
         case '2':
           this.renderTitleThumbnail(dataArr, readMoreURL, itemCount);
           break;
-
         case '3':
           this.renderTitle(dataArr, readMoreURL, itemCount);
           break;
-
         case '4':
           this.renderFeature(dataArr, readMoreURL, itemCount);
           break;
-
         case 'error':
           this.renderNoResultsError();
           break;
-
         default:
           this.renderTeaser(dataArr, readMoreURL, itemCount);
       }
+      this.renderLoader(false);
     }
 
     /**
@@ -379,8 +370,6 @@
         articleContainerText.innerHTML += article.summary;
         articleContainer.appendChild(articleContainerText);
 
-        // Hide loader
-        this.renderLoader(false);
         // Append
         this.appendChild(articleContainer);
       }
@@ -432,8 +421,6 @@
           moreLinkElement.href = absoluteURL;
         }
       }
-      // Hide loader
-      this.renderLoader(false);
       // Append grid
       this.appendChild(gridContainer);
 
@@ -469,8 +456,6 @@
         const articleContainer = document.createElement('div');
         articleContainer.classList = 'ucb-campus-news-title-only';
         articleContainer.innerHTML += article.title;
-        // Hide loader
-        this.renderLoader(false);
         // Append
         this.appendChild(articleContainer);
       }
@@ -509,8 +494,7 @@
         articleContainer.innerHTML = article.thumbnail;
         articleContainer.innerHTML += article.title;
 
-        // Hide loader and Append
-        this.renderLoader(false);
+        // Append
         this.appendChild(articleContainer);
       }
 
@@ -572,8 +556,7 @@
           const remainingFeatureContainer = document.createElement('div');
           remainingFeatureContainer.classList = 'article-feature-block-remaining col-lg-4 col-md-4 col-sm-4 col-xs-12';
           remainingFeatureContainer.id = 'remaining-feature-container';
-          // Append & Hide Loader
-          this.renderLoader(false);
+          // Append
           featureBlockContainer.appendChild(remainingFeatureContainer);
         } else {
           // Create article container
@@ -599,8 +582,6 @@
       errorMessage.classList = 'ucb-campus-news-error-message';
 
       errorMessage.innerText = 'Error retrieving results from CU Boulder Today - check filters and try again';
-      // Remove loader, render error
-      this.renderLoader(false);
       // Append
       errorContainer.appendChild(errorMessage);
       this.appendChild(errorContainer);
