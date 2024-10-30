@@ -4,12 +4,35 @@
  * @typedef {{
  *   title: string;
  *   thumbnail: string;
- *   body: string;
- *   created: number;
- * }} ArticleHtml
+ *   summary: string;
+ *   created: Date;
+ * }} ArticleHTML
  */
 
 (function (customElements) {
+
+  /**
+   * Creates a taxonomy filter group to filter by specific taxonomy terms.
+   *
+   * @param {URLSearchParams} params
+   *   The URL params to add the filter group to.
+   * @param {number[]} termIds
+   *   The terms to include in the filter (joined with OR).
+   * @param {string} groupName
+   *   The name of the filter group.
+   * @param {string} fieldName
+   *   The name of the Drupal field.
+   */
+  function jsonAPICreateFilterGroup(params, termIds, groupName, fieldName) {
+    if (termIds.length > 0) {
+      params.append(`filter[${groupName}][group][conjunction]`, 'OR');
+      termIds.forEach(termId => {
+        params.append(`filter[${groupName}-${termId}][condition][path]`, `${fieldName}.meta.drupal_internal__target_id`);
+        params.append(`filter[${groupName}-${termId}][condition][value]`, `${termId}`);
+        params.append(`filter[${groupName}-${termId}][condition][memberOf]`, groupName);
+      });
+    }
+  }
 
   /**
    * Fetches the articles using the Today site JSON API.
@@ -22,14 +45,49 @@
    *   The syndication unit filter from the block configuration.
    * @param {string} renderStyle
    *   The render style from the block configuration.
+   * @param {number} itemCount
+   *   The maximum number of articles to display from the block configuration.
    *
-   * @returns {{ articleHtml: ArticleHtml[]; readMoreUrl: string }}
+   * @returns {{ articleHTML: ArticleHTML[]; readMoreURL: string; }}
    *   The resulting article HTML based on the render style, and the correct
    *   read more link URL for this version of the Today site.
    */
-  async function jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle) {
-    // TODO: JSON API client.
-    throw new Error('JSON API client not yet implemented.');
+  async function jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount) {
+    // TODO: Change to production URL.
+    const baseURL = 'https://live-ucbprod-today.pantheonsite.io';
+    const params = new URLSearchParams({
+      'include[node--ucb_article]': 'uid,title,created,field_ucb_article_summary,field_ucb_article_thumbnail',
+      'include': 'field_ucb_article_thumbnail.field_media_image',
+      'fields[file--file]': 'uri,url',
+      'sort[sort-created][path]': 'created',
+      'sort[sort-created][direction]': 'DESC',
+      'page[limit]': `${itemCount}`
+    });
+
+    jsonAPICreateFilterGroup(params, categoryFilter, 'category', 'field_ucb_article_categories');
+    jsonAPICreateFilterGroup(params, audienceFilter, 'audience', 'field_syndication_audience');
+    jsonAPICreateFilterGroup(params, unitFilter, 'unit', 'field_syndication_unit');
+
+    const response = await fetch(baseURL + '/jsonapi/node/ucb_article?' + params);
+    const json = await response.json();
+
+    return {
+      articleHTML: json['data'].map(article => {
+        const articleURL = baseURL + safe(article['attributes']['path']['alias']);
+        return {
+          title: `<a href="${articleURL}">${safe(article['attributes']['title'])}</a>`,
+          // TODO: Add thumbnail with the correct image style.
+          thumbnail: '',
+          summary: '<p class="campus-news-article-summary">'
+            + safe(article['attributes']['field_ucb_article_summary'])
+            + (renderStyle === '1' ? ` <a href="${articleURL}">Read more</a>` : '')
+            + '</p>',
+          created: new Date(article['attributes']['created'])
+        };
+      }),
+      // TODO: Update this once the D10 read more page is done.
+      readMoreURL: baseURL
+    };
   }
 
   /**
@@ -44,7 +102,7 @@
    * @param {string} renderStyle
    *   The render style from the block configuration.
    *
-   * @returns {{ articleHtml: ArticleHtml[]; readMoreUrl: string }}
+   * @returns {{ articleHTML: ArticleHTML[]; readMoreURL: string; }}
    *   The resulting article HTML based on the render style, and the correct
    *   read more link URL for this version of the Today site.
    */
@@ -59,30 +117,30 @@
 
     const baseURL = 'https://www.colorado.edu/today/syndicate/article';
     // Adds in filter parameters for API request
-    let filterUrl = '';
+    let filterParams = '';
 
     // Conditional statements for building the API parameter piece of the
     // endpoint
     if (categoryParam != '') {
-      filterUrl += '?' + categoryParam;
+      filterParams += '?' + categoryParam;
     }
 
     // These statements adjust the parameter piece of the URL depending on what
     if (categoryParam == '' && audienceParam != '') {
-      filterUrl += '?' + audienceParam;
+      filterParams += '?' + audienceParam;
     } else if (audienceParam != '') {
-      filterUrl += `&${audienceParam}`;
+      filterParams += `&${audienceParam}`;
     }
 
     if (categoryParam == '' && audienceParam == '' && unitParam != '') {
-      filterUrl += '?' + unitParam;
+      filterParams += '?' + unitParam;
     } else if (unitParam != '' && (categoryParam != '' || audienceParam != '')) {
-      filterUrl += `&${unitParam}`;
+      filterParams += `&${unitParam}`;
     }
 
     // This condition enables grid mode to pull the wide thumbnails for
     // styling in grid mode, otherwise just grab thumbnails
-    let api = baseURL + filterUrl
+    let api = baseURL + filterParams;
     if (renderStyle === '1') {
       if (categoryParam == '' && audienceParam == '' && unitParam == '') {
         api += '?view_mode=grid';
@@ -101,8 +159,8 @@
       }
     }
 
-    const data = await fetch(api);
-    const json = await data.json();
+    const response = await fetch(api);
+    const json = await response.json();
 
     // Convert to array and sort by created
     const dataArr = Object.keys(json).map(key => {
@@ -110,16 +168,37 @@
       return {
         title: article['title'],
         thumbnail: article['thumbnail'],
-        body: article['body'],
-        created: article['created']
+        summary: article['body'],
+        created: new Date(parseInt(article['created']) * 1000)
       };
     });
-    dataArr.sort((a, b) => parseFloat(b.created) - parseFloat(a.created));
+
+    dataArr.sort((a, b) =>
+      parseFloat(b.created.getMilliseconds()) - parseFloat(a.created.getMilliseconds()));
 
     return {
-      articleHtml: dataArr,
-      readMoreUrl: 'https://www.colorado.edu/today/syndicate/article/read' + filterUrl
+      articleHTML: dataArr,
+      readMoreURL: 'https://www.colorado.edu/today/syndicate/article/read' + filterParams
     };
+  }
+
+  /**
+   * Converts input text to an HTML-safe string.
+   *
+   * @param {string} text
+   *   The input text.
+   * @returns
+   *   The HTML-safe text.
+   */
+  function safe(text) {
+    return text
+      // Strips unsupported MathML tags.
+      .replace(/<\/?mml[^>]*>/gi, '')
+      // Escapes HTML characters.
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   /**
@@ -161,7 +240,7 @@
       */
       let data;
       try {
-        data = await jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle);
+        data = await jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount);
       } catch (exception) {
         console.error(exception);
         console.warn('Call to JSON API failed, trying legacy API.');
@@ -187,48 +266,48 @@
       }
 
       // Error - no data
-      if (data.articleHtml.length === 0) {
+      if (data.articleHTML.length === 0) {
         renderStyle = 'error';
       }
 
-      this.render(data.articleHtml, renderStyle, data.readMoreUrl, itemCount);      
+      this.render(data.articleHTML, renderStyle, data.readMoreURL, itemCount);      
     }
 
     /**
      * Renders this Campus News block.
      *
-     * @param {ArticleHtml[]} dataArr
+     * @param {ArticleHTML[]} dataArr
      *   The resulting article HTML based on the render style.
      * @param {string} renderStyle
      *   The render style from the block configuration.
-     * @param {string} readMoreUrl
+     * @param {string} readMoreURL
      *   The correct read more link URL for this version of the Today site.
      * @param {number} itemCount
      *   The maximum number of articles to display from the block
      *   configuration.
      */
-    render(dataArr, renderStyle, readMoreUrl, itemCount) {
+    render(dataArr, renderStyle, readMoreURL, itemCount) {
       this.renderLoader(true)
 
       switch (renderStyle) {
         case '0':
-          this.renderTeaser(dataArr, readMoreUrl, itemCount);
+          this.renderTeaser(dataArr, readMoreURL, itemCount);
           break;
 
         case '1':
-          this.renderGrid(dataArr, readMoreUrl, itemCount);
+          this.renderGrid(dataArr, readMoreURL, itemCount);
           break;
 
         case '2':
-          this.renderTitleThumbnail(dataArr, readMoreUrl, itemCount);
+          this.renderTitleThumbnail(dataArr, readMoreURL, itemCount);
           break;
 
         case '3':
-          this.renderTitle(dataArr, readMoreUrl, itemCount);
+          this.renderTitle(dataArr, readMoreURL, itemCount);
           break;
 
         case '4':
-          this.renderFeature(dataArr, readMoreUrl, itemCount);
+          this.renderFeature(dataArr, readMoreURL, itemCount);
           break;
 
         case 'error':
@@ -236,55 +315,54 @@
           break;
 
         default:
-          this.renderTeaser(dataArr, readMoreUrl, itemCount);
+          this.renderTeaser(dataArr, readMoreURL, itemCount);
       }
     }
 
     /**
      * Renders this Campus News block based on the Teaser render style.
      *
-     * @param {ArticleHtml[]} data
+     * @param {ArticleHTML[]} data
      *   The resulting article HTML based on the render style.
-     * @param {string} readMoreUrl
+     * @param {string} readMoreURL
      *   The correct read more link URL for this version of the Today site.
      * @param {number} itemCount
      *   The maximum number of articles to display from the block
      *   configuration.
      */
-    renderTeaser(data, readMoreUrl, itemCount) {
+    renderTeaser(data, readMoreURL, itemCount) {
       // Iterate through response object
-      data.forEach(article => {
-        // Render number specifed by user
-        if (itemCount > this.children.length - 1) {
-          // Date conversion
-          const fullDate = new Date(parseInt(article.created) * 1000);
-          const month = fullDate.toLocaleDateString('en-us', { month: 'short' });
-          const day = fullDate.getUTCDate();
-          const year = fullDate.getUTCFullYear();
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
 
-          // Create article container
-          const articleContainer = document.createElement('div');
-          articleContainer.classList = 'campus-news-article-teaser d-flex';
-          articleContainer.innerHTML = article.thumbnail;
-          const articleContainerText = document.createElement('div');
-          articleContainerText.innerHTML += article.title;
-          articleContainerText.innerHTML += `<p class="ucb-campus-news-date">${month == 'May' ? month : month + '.'} ${day}, ${year}</p>`;
-          articleContainerText.innerHTML += article.body;
-          articleContainer.appendChild(articleContainerText);
+        // Date conversion
+        const fullDate = article.created;
+        const month = fullDate.toLocaleDateString('en-us', { month: 'short' });
+        const day = fullDate.getUTCDate();
+        const year = fullDate.getUTCFullYear();
 
-          // Hide loader
-          this.renderLoader(false);
-          // Append
-          this.appendChild(articleContainer);
-        }
-      });
+        // Create article container
+        const articleContainer = document.createElement('div');
+        articleContainer.classList = 'campus-news-article-teaser d-flex';
+        articleContainer.innerHTML = article.thumbnail;
+        const articleContainerText = document.createElement('div');
+        articleContainerText.innerHTML += article.title;
+        articleContainerText.innerHTML += `<div class="campus-news-article-date">${month == 'May' ? month : month + '.'} ${day}, ${year}</div>`;
+        articleContainerText.innerHTML += article.summary;
+        articleContainer.appendChild(articleContainerText);
+
+        // Hide loader
+        this.renderLoader(false);
+        // Append
+        this.appendChild(articleContainer);
+      }
 
       // After articles, create Read More link
       const readMoreContainer = document.createElement('div');
       readMoreContainer.classList = 'ucb-campus-news-link-container';
       const readMoreLink = document.createElement('a');
       readMoreLink.classList = 'ucb-campus-news-link';
-      readMoreLink.href = readMoreUrl;
+      readMoreLink.href = readMoreURL;
       readMoreLink.innerText = 'Read more at CU Boulder Today';
       readMoreContainer.appendChild(readMoreLink);
 
@@ -295,36 +373,37 @@
     /**
      * Renders this Campus News block based on the Grid render style.
      *
-     * @param {ArticleHtml[]} data
+     * @param {ArticleHTML[]} data
      *   The resulting article HTML based on the render style.
-     * @param {string} readMoreUrl
+     * @param {string} readMoreURL
      *   The correct read more link URL for this version of the Today site.
      * @param {number} itemCount
      *   The maximum number of articles to display from the block
      *   configuration.
      */
-    renderGrid(data, readMoreUrl, itemCount) {
+    renderGrid(data, readMoreURL, itemCount) {
       const gridContainer = document.createElement('div');
       gridContainer.classList = 'row';
       // Iterate
-      data.forEach(article => {
-        // Render number specified by user
-        if (itemCount > gridContainer.children.length) {
-          // Create article container
-          const articleContainer = document.createElement('div');
-          articleContainer.classList = 'campus-news-article-grid col-sm-12 col-md-6 col-lg-4';
-          articleContainer.innerHTML = article.thumbnail;
-          articleContainer.innerHTML += article.title;
-          articleContainer.innerHTML += article.body;
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
+        // Create article container
+        const articleContainer = document.createElement('div');
+        articleContainer.classList = 'campus-news-article-grid col-sm-12 col-md-6 col-lg-4';
+        articleContainer.innerHTML = article.thumbnail;
+        articleContainer.innerHTML += article.title;
+        articleContainer.innerHTML += article.summary;
 
-          // Append
-          gridContainer.appendChild(articleContainer)
-          // Fix relative URL on Read More Grid link
-          const relativeURL = articleContainer.getElementsByClassName('more-link')[0].href.split('/today/')[1];
+        // Append
+        gridContainer.appendChild(articleContainer)
+        // Fixes relative URL on Read More Grid link for legacy API.
+        const moreLinkElement = articleContainer.querySelector('.more-link');
+        if (moreLinkElement) {
+          const relativeURL = moreLinkElement.href.split('/today/')[1];
           const absoluteURL = `https://www.colorado.edu/today/${relativeURL}`;
-          articleContainer.getElementsByClassName('more-link')[0].href = absoluteURL;
+          moreLinkElement.href = absoluteURL;
         }
-      });
+      }
       // Hide loader
       this.renderLoader(false);
       // Append grid
@@ -335,7 +414,7 @@
       readMoreContainer.classList = 'ucb-campus-news-grid-link-container';
       const readMoreLink = document.createElement('a');
       readMoreLink.classList = 'ucb-campus-news-grid-link';
-      readMoreLink.href = readMoreUrl;
+      readMoreLink.href = readMoreURL;
       readMoreLink.innerText = 'Read more at CU Boulder Today';
 
       // Append
@@ -346,35 +425,33 @@
     /**
      * Renders this Campus News block based on the Title render style.
      *
-     * @param {ArticleHtml[]} data
+     * @param {ArticleHTML[]} data
      *   The resulting article HTML based on the render style.
-     * @param {string} readMoreUrl
+     * @param {string} readMoreURL
      *   The correct read more link URL for this version of the Today site.
      * @param {number} itemCount
      *   The maximum number of articles to display from the block
      *   configuration.
      */
-    renderTitle(data, readMoreUrl, itemCount) {
+    renderTitle(data, readMoreURL, itemCount) {
       // Iterate
-      data.forEach(article => {
-        // Render number specified by user
-        if (itemCount > this.children.length - 1) {
-          // Create article container
-          const articleContainer = document.createElement('div');
-          articleContainer.classList = 'ucb-campus-news-title-only';
-          articleContainer.innerHTML += article.title;
-          // Hide loader
-          this.renderLoader(false);
-          // Append
-          this.appendChild(articleContainer);
-        }
-      });
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
+        // Create article container
+        const articleContainer = document.createElement('div');
+        articleContainer.classList = 'ucb-campus-news-title-only';
+        articleContainer.innerHTML += article.title;
+        // Hide loader
+        this.renderLoader(false);
+        // Append
+        this.appendChild(articleContainer);
+      }
       const readMoreContainer = document.createElement('div');
       readMoreContainer.classList = 'ucb-campus-news-link-container';
       // After articles, create Read More link
       const readMoreLink = document.createElement('a');
       readMoreLink.classList = 'ucb-campus-news-link';
-      readMoreLink.href = readMoreUrl;
+      readMoreLink.href = readMoreURL;
       readMoreLink.innerText = 'Read more at CU Boulder Today';
       readMoreContainer.appendChild(readMoreLink);
 
@@ -386,37 +463,35 @@
      * Renders this Campus News block based on the Title and Thumbnail render
      * style.
      *
-     * @param {ArticleHtml[]} data
+     * @param {ArticleHTML[]} data
      *   The resulting article HTML based on the render style.
-     * @param {string} readMoreUrl
+     * @param {string} readMoreURL
      *   The correct read more link URL for this version of the Today site.
      * @param {number} itemCount
      *   The maximum number of articles to display from the block
      *   configuration.
      */
-    renderTitleThumbnail(data, readMoreUrl, itemCount) {
+    renderTitleThumbnail(data, readMoreURL, itemCount) {
       // Iterate
-      data.forEach(article => {
-        // Render number specified by user
-        if (itemCount > this.children.length - 1) {
-          // Create article container
-          const articleContainer = document.createElement('div');
-          articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex';
-          articleContainer.innerHTML = article.thumbnail;
-          articleContainer.innerHTML += article.title;
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
+        // Create article container
+        const articleContainer = document.createElement('div');
+        articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex';
+        articleContainer.innerHTML = article.thumbnail;
+        articleContainer.innerHTML += article.title;
 
-          // Hide loader and Append
-          this.renderLoader(false);
-          this.appendChild(articleContainer);
-        }
-      });
+        // Hide loader and Append
+        this.renderLoader(false);
+        this.appendChild(articleContainer);
+      }
 
       const readMoreContainer = document.createElement('div')
       readMoreContainer.classList = 'ucb-campus-news-link-container';
       // After articles, create Read More link
       const readMoreLink = document.createElement('a');
       readMoreLink.classList = 'ucb-campus-news-link';
-      readMoreLink.href = readMoreUrl;
+      readMoreLink.href = readMoreURL;
       readMoreLink.innerText = 'Read more at CU Boulder Today';
       readMoreContainer.appendChild(readMoreLink);
 
@@ -427,19 +502,21 @@
     /**
      * Renders this Campus News block based on the Feature render style.
      *
-     * @param {ArticleHtml[]} data
+     * @param {ArticleHTML[]} data
      *   The resulting article HTML based on the render style.
-     * @param {string} readMoreUrl
+     * @param {string} readMoreURL
      *   The correct read more link URL for this version of the Today site.
      * @param {number} itemCount
      *   The maximum number of articles to display from the block
      *   configuration.
      */
-    renderFeature(data, readMoreUrl, itemCount) {
+    renderFeature(data, readMoreURL, itemCount) {
       const featureBlockContainer = document.createElement('div');
       featureBlockContainer.classList = 'row';
       // Iterate
-      data.forEach(article => {
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
+
         // Render number specified by user
         // First pass generate the feature block, setup the containers
         if (this.children.length - 1 == 0) {
@@ -448,12 +525,12 @@
           featureContainer.classList = 'campus-news-article-feature col-lg-8 col-md-8 col-sm-8 col-xs-12';
           featureContainer.innerHTML = article.thumbnail;
           featureContainer.innerHTML += article.title;
-          featureContainer.innerHTML += article.body;
+          featureContainer.innerHTML += article.summary;
 
           // Create Button 
           const readMoreLink = document.createElement('a');
           readMoreLink.classList = 'ucb-campus-news-grid-link mt-5';
-          readMoreLink.href = readMoreUrl;
+          readMoreLink.href = readMoreURL;
           readMoreLink.innerText = 'Read more at CU Boulder Today';
 
           // Append
@@ -471,19 +548,16 @@
           this.renderLoader(false);
           featureBlockContainer.appendChild(remainingFeatureContainer);
         } else {
-          if (itemCount > this.children[1].children[1].children.length + 1) {
+          // Create article container
+          const articleContainer = document.createElement('div');
+          articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex';
+          articleContainer.innerHTML = article.thumbnail;
+          articleContainer.innerHTML += article.title;
 
-            // Create article container
-            const articleContainer = document.createElement('div');
-            articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex';
-            articleContainer.innerHTML = article.thumbnail;
-            articleContainer.innerHTML += article.title;
-
-            // Append
-            this.children[1].children[1].appendChild(articleContainer);
-          }
+          // Append
+          this.children[1].children[1].appendChild(articleContainer);
         }
-      })
+      }
     }
 
     /**
