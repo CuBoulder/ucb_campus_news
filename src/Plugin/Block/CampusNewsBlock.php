@@ -256,7 +256,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
       ],
       '#states' => [
         'visible' => [
-          'input[name="settings[filter_' . $filterName . '][enable_filter]"]' => [
+          'input[name="settings[tabs][content][filter_' . $filterName . '][enable_filter]"]' => [
             'checked' => TRUE,
           ],
         ],
