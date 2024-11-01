@@ -25,12 +25,11 @@
    */
   function jsonAPICreateFilterGroup(params, termIds, groupName, fieldName) {
     if (termIds.length > 0) {
-      params.append(`filter[${groupName}][group][conjunction]`, 'OR');
-      termIds.forEach(termId => {
-        params.append(`filter[${groupName}-${termId}][condition][path]`, `${fieldName}.meta.drupal_internal__target_id`);
-        params.append(`filter[${groupName}-${termId}][condition][value]`, `${termId}`);
-        params.append(`filter[${groupName}-${termId}][condition][memberOf]`, groupName);
-      });
+      params.append(`filter[${groupName}][condition][path]`, `${fieldName}.meta.drupal_internal__target_id`);
+      params.append(`filter[${groupName}][condition][operator]`, 'IN');
+      for (let i = 0; i < termIds.length; i++) {
+        params.append(`filter[${groupName}][condition][value][${i + 1}]`, `${termIds[i]}`);
+      }
     }
   }
 
