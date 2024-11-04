@@ -1,9 +1,10 @@
 {{ attach_library('ucb_campus_news/ucb-campus-news') }}
 <campus-news{{
-    attributes.setAttribute('rendermethod', data.display)
-      .setAttribute('filters', data.filters|json_encode)
-      .setAttribute('count', data.count)
-  }}>
+  attributes
+    .setAttribute('display', data.display)
+    .setAttribute('filters', data.filters|json_encode)
+    .setAttribute('count', data.count)
+}}>
   {# Loading message #}
   <div class="ucb-list-msg ucb-loading-data text-center">
     <i class="fa-solid fa-spinner fa-3x fa-pulse"></i>

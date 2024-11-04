@@ -60,7 +60,9 @@
       'fields[file--file]': 'uri,url',
       'sort[sort-created][path]': 'created',
       'sort[sort-created][direction]': 'DESC',
-      'page[limit]': `${itemCount}`
+      'page[limit]': `${itemCount}`,
+      // Gets only published nodes.
+      'filter[status][value]': '1'
     });
 
     jsonAPICreateFilterGroup(params, categoryFilter, 'category', 'field_ucb_article_categories');
@@ -69,14 +71,20 @@
 
     const response = await fetch(baseURL + '/jsonapi/node/ucb_article?' + params);
     const json = await response.json();
-    const mediaImages = json['included'].filter(item => item['type'] === 'media--image');
-    const files = json['included'].filter(item => item['type'] === 'file--file');
+
+    const included = json['included'];
+    let mediaImages, files;
+    if (included) {
+      // Prepares arrays for finding the thumbnail image attributes later.
+      mediaImages = included.filter(item => item['type'] === 'media--image');
+      files = included.filter(item => item['type'] === 'file--file');
+    }
 
     return {
       articleHTML: json['data'].map(article => {
         const articleURL = baseURL + safe(article['attributes']['path']['alias']);
         let articleThumbnailURL, articleThumbnailAlt;
-        if (renderStyle !== '3' && article['relationships']['field_ucb_article_thumbnail']['data']) {
+        if (renderStyle !== '3' && mediaImages && files && article['relationships']['field_ucb_article_thumbnail']['data']) {
           // Article has a thumbnail image and the Title [only] render style
           // isn't selected.
           let imageStyle;
@@ -244,7 +252,7 @@
     async loadArticles() {
       this.renderLoader(true);
 
-      let renderStyle = this.getAttribute('rendermethod');
+      let renderStyle = this.getAttribute('display');
       const dataFilters = this.getAttribute('filters');
       const itemCount = parseInt(this.getAttribute('count')) + 3;
       const dataFiltersJSON = JSON.parse(dataFilters);
@@ -274,19 +282,7 @@
         } catch (exception2) {
           console.error(exception2);
           // If API error, render Read More @ Today link with Error Message
-          const errorHeader = document.createElement('h4');
-          errorHeader.innerText = 'Unable to load articles - please try again later';
-          const readMoreContainer = document.createElement('div')
-          readMoreContainer.classList = 'ucb-campus-news-grid-link-container';
-          const readMoreLink = document.createElement('a');
-          readMoreLink.classList = 'ucb-campus-news-grid-link';
-          readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read';
-          readMoreLink.innerText = 'Read on CU Boulder Today';
-
-          // Append
-          readMoreContainer.appendChild(errorHeader);
-          readMoreContainer.appendChild(readMoreLink);
-          this.appendChild(readMoreContainer);
+          this.renderLoadError();
         }
       }
 
@@ -334,6 +330,7 @@
         default:
           this.renderTeaser(dataArr, readMoreURL, itemCount);
       }
+
       this.renderLoader(false);
     }
 
@@ -361,7 +358,7 @@
 
         // Create article container
         const articleContainer = document.createElement('div');
-        articleContainer.classList = 'campus-news-article-teaser d-flex';
+        articleContainer.className = 'campus-news-article-teaser d-flex';
         articleContainer.innerHTML = article.thumbnail;
         const articleContainerText = document.createElement('div');
         articleContainerText.innerHTML += article.title;
@@ -375,9 +372,9 @@
 
       // After articles, create Read More link
       const readMoreContainer = document.createElement('div');
-      readMoreContainer.classList = 'ucb-campus-news-link-container';
+      readMoreContainer.className = 'ucb-campus-news-link-container';
       const readMoreLink = document.createElement('a');
-      readMoreLink.classList = 'ucb-campus-news-link';
+      readMoreLink.className = 'ucb-campus-news-link';
       readMoreLink.href = readMoreURL;
       readMoreLink.innerText = 'Read more at CU Boulder Today';
       readMoreContainer.appendChild(readMoreLink);
@@ -399,13 +396,13 @@
      */
     renderGrid(data, readMoreURL, itemCount) {
       const gridContainer = document.createElement('div');
-      gridContainer.classList = 'row';
+      gridContainer.className = 'row';
       // Iterate
       for (let i = 0; i < Math.min(itemCount, data.length); i++) {
         const article = data[i];
         // Create article container
         const articleContainer = document.createElement('div');
-        articleContainer.classList = 'campus-news-article-grid col-sm-12 col-md-6 col-lg-4';
+        articleContainer.className = 'campus-news-article-grid col-sm-12 col-md-6 col-lg-4';
         articleContainer.innerHTML = article.thumbnail;
         articleContainer.innerHTML += article.title;
         articleContainer.innerHTML += article.summary;
@@ -425,9 +422,9 @@
 
       // After articles, create Read More link (Grid style)
       const readMoreContainer = document.createElement('div');
-      readMoreContainer.classList = 'ucb-campus-news-grid-link-container';
+      readMoreContainer.className = 'ucb-campus-news-grid-link-container';
       const readMoreLink = document.createElement('a');
-      readMoreLink.classList = 'ucb-campus-news-grid-link';
+      readMoreLink.className = 'ucb-campus-news-grid-link';
       readMoreLink.href = readMoreURL;
       readMoreLink.innerText = 'Read more at CU Boulder Today';
 
@@ -453,16 +450,16 @@
         const article = data[i];
         // Create article container
         const articleContainer = document.createElement('div');
-        articleContainer.classList = 'ucb-campus-news-title-only';
+        articleContainer.className = 'ucb-campus-news-title-only';
         articleContainer.innerHTML += article.title;
         // Append
         this.appendChild(articleContainer);
       }
       const readMoreContainer = document.createElement('div');
-      readMoreContainer.classList = 'ucb-campus-news-link-container';
+      readMoreContainer.className = 'ucb-campus-news-link-container';
       // After articles, create Read More link
       const readMoreLink = document.createElement('a');
-      readMoreLink.classList = 'ucb-campus-news-link';
+      readMoreLink.className = 'ucb-campus-news-link';
       readMoreLink.href = readMoreURL;
       readMoreLink.innerText = 'Read more at CU Boulder Today';
       readMoreContainer.appendChild(readMoreLink);
@@ -489,7 +486,7 @@
         const article = data[i];
         // Create article container
         const articleContainer = document.createElement('div');
-        articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex';
+        articleContainer.className = 'ucb-campus-news-title-thumbnail-only d-flex';
         articleContainer.innerHTML = article.thumbnail;
         articleContainer.innerHTML += article.title;
 
@@ -497,11 +494,11 @@
         this.appendChild(articleContainer);
       }
 
-      const readMoreContainer = document.createElement('div')
-      readMoreContainer.classList = 'ucb-campus-news-link-container';
+      const readMoreContainer = document.createElement('div');
+      readMoreContainer.className = 'ucb-campus-news-link-container';
       // After articles, create Read More link
       const readMoreLink = document.createElement('a');
-      readMoreLink.classList = 'ucb-campus-news-link';
+      readMoreLink.className = 'ucb-campus-news-link';
       readMoreLink.href = readMoreURL;
       readMoreLink.innerText = 'Read more at CU Boulder Today';
       readMoreContainer.appendChild(readMoreLink);
@@ -523,7 +520,7 @@
      */
     renderFeature(data, readMoreURL, itemCount) {
       const featureBlockContainer = document.createElement('div');
-      featureBlockContainer.classList = 'row';
+      featureBlockContainer.className = 'row';
       // Iterate
       for (let i = 0; i < Math.min(itemCount, data.length); i++) {
         const article = data[i];
@@ -533,14 +530,14 @@
         if (this.children.length - 1 == 0) {
           // Create article container
           const featureContainer = document.createElement('div');
-          featureContainer.classList = 'campus-news-article-feature col-lg-8 col-md-8 col-sm-8 col-xs-12';
+          featureContainer.className = 'campus-news-article-feature col-lg-8 col-md-8 col-sm-8 col-xs-12';
           featureContainer.innerHTML = article.thumbnail;
           featureContainer.innerHTML += article.title;
           featureContainer.innerHTML += article.summary;
 
-          // Create Button 
+          // Create Button
           const readMoreLink = document.createElement('a');
-          readMoreLink.classList = 'ucb-campus-news-grid-link mt-5';
+          readMoreLink.className = 'ucb-campus-news-grid-link mt-5';
           readMoreLink.href = readMoreURL;
           readMoreLink.innerText = 'Read more at CU Boulder Today';
 
@@ -553,14 +550,14 @@
 
           // Create the subfeature container
           const remainingFeatureContainer = document.createElement('div');
-          remainingFeatureContainer.classList = 'article-feature-block-remaining col-lg-4 col-md-4 col-sm-4 col-xs-12';
+          remainingFeatureContainer.className = 'article-feature-block-remaining col-lg-4 col-md-4 col-sm-4 col-xs-12';
           remainingFeatureContainer.id = 'remaining-feature-container';
           // Append
           featureBlockContainer.appendChild(remainingFeatureContainer);
         } else {
           // Create article container
           const articleContainer = document.createElement('div');
-          articleContainer.classList = 'ucb-campus-news-title-thumbnail-only d-flex';
+          articleContainer.className = 'ucb-campus-news-title-thumbnail-only d-flex';
           articleContainer.innerHTML = article.thumbnail;
           articleContainer.innerHTML += article.title;
 
@@ -571,22 +568,50 @@
     }
 
     /**
+     * Renders an error if results failed to load due to an API error.
+     */
+    renderLoadError() {
+      const errorContainer = document.createElement('div');
+      errorContainer.className = 'ucb-campus-news-error-container';
+      errorContainer.innerHTML = '<p class="ucb-campus-news-error-message">'
+        + '<strong>'
+        + 'Unable to load articles, please reload the page or try again later.'
+        + '</strong>'
+        + '</p>';
+
+      const readMoreContainer = document.createElement('div');
+      readMoreContainer.className = 'ucb-campus-news-grid-link-container';
+      const readMoreLink = document.createElement('a');
+      readMoreLink.className = 'ucb-campus-news-grid-link';
+      // TODO: Update this once the D10 read more page is done.
+      readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read';
+      readMoreLink.innerText = 'Read on CU Boulder Today';
+
+      // Append
+      readMoreContainer.appendChild(readMoreLink);
+      this.appendChild(errorContainer);
+      this.appendChild(readMoreContainer);
+
+      this.renderLoader(false);
+    }
+
+    /**
      * Renders an error if there are no results.
      */
     renderNoResultsError() {
       // Create error message
       const errorContainer = document.createElement('div');
-      errorContainer.classList = 'ucb-campus-news-error-container';
-      const errorMessage = document.createElement('h3');
-      errorMessage.classList = 'ucb-campus-news-error-message';
+      errorContainer.className = 'ucb-campus-news-error-container';
+      errorContainer.innerHTML = '<p class="ucb-campus-news-error-message">'
+        + '<strong>'
+        + 'No articles were returned from CU Boulder Today. Try making the filters less specific.'
+        + '</strong>'
+        + '</p>';
 
-      errorMessage.innerText = 'Error retrieving results from CU Boulder Today - check filters and try again';
       // Append
-      errorContainer.appendChild(errorMessage);
       this.appendChild(errorContainer);
 
-      // Remove Read More Link
-      this.children.length = 2;
+      this.renderLoader(false);
     }
 
     /**
@@ -596,7 +621,7 @@
      *   Whether to show or hide the spinner.
      */
     renderLoader(show) {
-      const loader = this.getElementsByClassName('ucb-list-msg ucb-loading-data')[0];
+      const loader = this.querySelector('.ucb-list-msg.ucb-loading-data');
 
       if (show) {
         loader.style.display = 'block';

@@ -21,7 +21,7 @@
  *   The Drupal JavaScript API.
  * @param {string} label
  *   The display label of the filter.
- * @param {string} taxonomy 
+ * @param {string} taxonomy
  *   The name of the taxonomy term this filter is associated with.
  * @param {string} machineName
  *   The machine name of the filter.
