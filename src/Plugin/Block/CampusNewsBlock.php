@@ -86,7 +86,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
       $blockFilterConfigurationItem = array_key_exists($filterMachineName, $blockFilterConfiguration) ? $blockFilterConfiguration[$filterMachineName] : [
-        'enabled' => 0,
+        'enabled' => FALSE,
         'includes' => [],
       ];
       $filters[$filterMachineName] = $blockFilterConfigurationItem['enabled'] ? $blockFilterConfigurationItem['includes'] : [0];
@@ -165,27 +165,9 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
           });
           // Iterates over trails.
           foreach ($trails as $trail) {
-            $parentTrailSize = count($trail) - 1;
-            if ($parentTrailSize > 0) {
-              // Valid trails will have a size of more than 0.
-              $parentIncluded = FALSE;
-              for ($parentIdIndex = 0; $parentIdIndex < $parentTrailSize; $parentIdIndex++) {
-                $includeParentId = intval($trail[$parentIdIndex]);
-                // Examine if the parent if already included.
-                if ($includeParentId > 0 && in_array($includeParentId, $includesProcessed)) {
-                  $parentIncluded = TRUE;
-                  break;
-                }
-              }
-              if (!$parentIncluded) {
-                // If an item's parent is not included, add the item. An item
-                // with an included parent doesn't need to be added as it will
-                // be included in results as part of the parent.
-                $includeInt = intval($trail[$parentTrailSize]);
-                if ($includeInt > 0) {
-                  $includesProcessed[] = $includeInt;
-                }
-              }
+            $includeInt = intval($trail[count($trail) - 1]);
+            if ($includeInt > 0) {
+              $includesProcessed[] = $includeInt;
             }
           }
         }
@@ -217,7 +199,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
       $values = $formValues['filter_' . $filterMachineName];
       $idArray = $form_state->getValue('filter_' . $filterMachineName . '_includes') ?? [];
       $this->configuration['filters'][$filterMachineName] = [
-        'enabled' => $values['enable_filter'],
+        'enabled' => !!$values['enable_filter'],
         'includes' => $idArray,
       ];
     }
@@ -239,7 +221,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
   private function addFilterToForm(array &$form, $label, $taxonomy, $filterName) {
     $blockFilterConfiguration = $this->configuration['filters'];
     $blockFilterConfigurationItem = array_key_exists($filterName, $blockFilterConfiguration) ? $blockFilterConfiguration[$filterName] : [
-      'enabled' => 0,
+      'enabled' => FALSE,
       'includes' => [],
     ];
     $form['filter_' . $filterName] = [
