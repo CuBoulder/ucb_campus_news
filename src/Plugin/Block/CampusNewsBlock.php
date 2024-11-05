@@ -144,7 +144,12 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
         $includesPreprocessed = array_keys($filterFormValues['container']['checkboxes']);
         if (count($includesPreprocessed) > $filterIncludeLimit) {
           // It's a good idea to limit the length.
-          $form_state->setErrorByName('settings][filter_' . $filterMachineName . '][container][checkboxes', 'Too many items selected to filter by ' . $moduleFilterConfigurationItem['label'] . '.');
+          $form_state->setErrorByName(
+            'settings][tabs][content][filter_' . $filterMachineName . '][container][checkboxes',
+            $this->t('Too many items selected to filter by @name.', [
+              '@name' => $moduleFilterConfigurationItem['label'],
+            ])
+          );
         }
         else {
           $trails = [];
@@ -188,7 +193,12 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
           // If the filter is enabled, at least one of the boxes should be
           // checked to include any results at all (or it may just include
           // everything which doesn't make sense with the filter enabled).
-          $form_state->setErrorByName('settings][filter_' . $filterMachineName . '][container][checkboxes', 'Please select at least one item to filter by ' . $moduleFilterConfigurationItem['label'] . '.');
+          $form_state->setErrorByName(
+            'settings][tabs][content][filter_' . $filterMachineName . '][container][checkboxes',
+            $this->t('Please select at least one item to filter by @name.', [
+              '@name' => $moduleFilterConfigurationItem['label'],
+            ])
+          );
         }
       }
       $form_state->setValue('filter_' . $filterMachineName . '_includes', $includesProcessed);
