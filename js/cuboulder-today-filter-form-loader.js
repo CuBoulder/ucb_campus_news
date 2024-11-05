@@ -11,6 +11,7 @@
  *   sorted: boolean;
  *   formElement: HTMLElement | null;
  * }} TaxonomyTreeNode
+ *
  * @typedef {{ enabled: number; includes: []; }} FilterConfiguration
  */
 

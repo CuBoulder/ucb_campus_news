@@ -86,10 +86,13 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
       $blockFilterConfigurationItem = array_key_exists($filterMachineName, $blockFilterConfiguration) ? $blockFilterConfiguration[$filterMachineName] : [
-        'enabled' => 0,
+        'enabled' => FALSE,
         'includes' => [],
+        'levels' => [],
       ];
-      $filters[$filterMachineName] = $blockFilterConfigurationItem['enabled'] ? $blockFilterConfigurationItem['includes'] : [0];
+      $filters[$filterMachineName] = $blockFilterConfigurationItem['enabled'] ? $blockFilterConfigurationItem : [
+        'enabled' => FALSE,
+      ];
     }
     $buildArray['#data'] = [
       // Passes the include filters on to be available in the block's template.
@@ -137,8 +140,10 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
     $filterIncludeLimit = $this->moduleConfiguration->get('filterIncludeLimit') + 1;
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
       $filterFormValues = $formValues['filter_' . $filterMachineName];
+      $enableFilter = !!$filterFormValues['enable_filter'];
       $includesProcessed = [];
-      if ($filterFormValues['enable_filter']) {
+      $levelsProcessed = [];
+      if ($enableFilter) {
         // Contains all the checked item trails for the filter, and possibly
         // also `cuboulder_today_filter_loading` to spice things up.
         $includesPreprocessed = array_keys($filterFormValues['container']['checkboxes']);
@@ -174,6 +179,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
                 // Examine if the parent if already included.
                 if ($includeParentId > 0 && in_array($includeParentId, $includesProcessed)) {
                   $parentIncluded = TRUE;
+                  $levelsProcessed[$includeParentId] = max($parentTrailSize, $levelsProcessed[$includeParentId]);
                   break;
                 }
               }
@@ -184,6 +190,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
                 $includeInt = intval($trail[$parentTrailSize]);
                 if ($includeInt > 0) {
                   $includesProcessed[] = $includeInt;
+                  $levelsProcessed[$includeInt] = max(1, $levelsProcessed[$includeParentId]);
                 }
               }
             }
@@ -201,7 +208,9 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
           );
         }
       }
+      $form_state->setValue('filter_' . $filterMachineName . '_enabled', $enableFilter);
       $form_state->setValue('filter_' . $filterMachineName . '_includes', $includesProcessed);
+      $form_state->setValue('filter_' . $filterMachineName . '_levels', $levelsProcessed);
     }
   }
 
@@ -214,11 +223,10 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
     $this->configuration['count'] = $formValues['count'];
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
-      $values = $formValues['filter_' . $filterMachineName];
-      $idArray = $form_state->getValue('filter_' . $filterMachineName . '_includes') ?? [];
       $this->configuration['filters'][$filterMachineName] = [
-        'enabled' => $values['enable_filter'],
-        'includes' => $idArray,
+        'enabled' => $form_state->getValue('filter_' . $filterMachineName . '_enabled') ?? FALSE,
+        'includes' => $form_state->getValue('filter_' . $filterMachineName . '_includes') ?? [],
+        'levels' => $form_state->getValue('filter_' . $filterMachineName . '_levels') ?? [],
       ];
     }
     parent::blockSubmit($form, $form_state);
@@ -239,8 +247,9 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
   private function addFilterToForm(array &$form, $label, $taxonomy, $filterName) {
     $blockFilterConfiguration = $this->configuration['filters'];
     $blockFilterConfigurationItem = array_key_exists($filterName, $blockFilterConfiguration) ? $blockFilterConfiguration[$filterName] : [
-      'enabled' => 0,
+      'enabled' => FALSE,
       'includes' => [],
+      'levels' => [],
     ];
     $form['filter_' . $filterName] = [
       '#type' => 'details',

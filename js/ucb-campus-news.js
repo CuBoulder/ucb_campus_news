@@ -2,6 +2,18 @@
  * @file Contains the frontend for the Campus News block.
  *
  * @typedef {{
+ *   enabled: 1 | 0 | true | false;
+ *   includes?: number[];
+ *   levels?: Record<string, number>;
+ * }} Filter
+ *
+ * @typedef {{
+ *   categories: Filter;
+ *   audiences: Filter;
+ *   units: Filter;
+ * }} Filters
+ *
+ * @typedef {{
  *   title: string;
  *   thumbnail: string;
  *   summary: string;
@@ -16,32 +28,56 @@
    *
    * @param {URLSearchParams} params
    *   The URL params to add the filter group to.
-   * @param {number[]} termIds
-   *   The terms to include in the filter (joined with OR).
+   * @param {Filter} filter
+   *   The filter configuration.
    * @param {string} groupName
    *   The name of the filter group.
    * @param {string} fieldName
    *   The name of the Drupal field.
    */
-  function jsonAPICreateFilterGroup(params, termIds, groupName, fieldName) {
-    if (termIds.length > 0) {
-      params.append(`filter[${groupName}][condition][path]`, `${fieldName}.meta.drupal_internal__target_id`);
-      params.append(`filter[${groupName}][condition][operator]`, 'IN');
-      for (let i = 0; i < termIds.length; i++) {
-        params.append(`filter[${groupName}][condition][value][${i + 1}]`, `${termIds[i]}`);
-      }
+  function jsonAPICreateFilterGroup(params, filter, groupName, fieldName) {
+    if (filter.enabled) {
+      /** Stores the current index of each level group's array. */
+      const levelArrayIndexes = [];
+      /** Stores the maximum level group created. */
+      let maxLevel = 0;
+      // Uses the `OR` conjunction to join level groups.
+      params.append(`filter[${groupName}][group][conjunction]`, 'OR');
+      // Iterates over each term id in the filter's include list.
+      filter.includes.forEach(termId => {
+        /**
+         * The term's level. For terms with no children this will be 1, for
+         * parent terms this will be greater than 1 and equal to the level
+         * difference of the parent and the most distant child + 1.
+         */
+        const termLevel = filter.levels[`${termId}`] || 1;
+        for (let j = 0; j < termLevel; j++) {
+          const level = j + 1;
+          if (level > maxLevel) {
+            // Creates the level group, using the `IN` operator to match all
+            // terms in the level group's array.
+            const parentProp = new Array(level).fill('', 0, 1).fill('parent', 1, level).join('.');
+            params.append(`filter[${groupName}-${level}][condition][path]`, `${fieldName}${parentProp}.meta.drupal_internal__target_id`);
+            params.append(`filter[${groupName}-${level}][condition][operator]`, 'IN');
+            params.append(`filter[${groupName}-${level}][condition][memberOf]`, `${groupName}`);
+            maxLevel = level;
+          }
+          // Appends the term id at the correct index in the level group's
+          // array.
+          const levelArrayIndex = levelArrayIndexes[j] || 1;
+          params.append(`filter[${groupName}-${level}][condition][value][${levelArrayIndex}]`, `${termId}`);
+          // Increments the level group's array index.
+          levelArrayIndexes[j] = levelArrayIndex + 1;
+        }
+      });
     }
   }
 
   /**
    * Fetches the articles using the Today site JSON API.
    *
-   * @param {number[]} categoryFilter
-   *   The category filter from the block configuration.
-   * @param {number[]} audienceFilter
-   *   The syndication audience filter from the block configuration.
-   * @param {number[]} unitFilter
-   *   The syndication unit filter from the block configuration.
+   * @param {Filters} filters
+   *   The filters from the block configuration.
    * @param {string} renderStyle
    *   The render style from the block configuration.
    * @param {number} itemCount
@@ -51,7 +87,7 @@
    *   The resulting article HTML based on the render style, and the correct
    *   read more link URL for this version of the Today site.
    */
-  async function jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount) {
+  async function jsonAPILoadArticles(filters, renderStyle, itemCount) {
     // TODO: Change to production URL.
     const baseURL = 'https://live-ucbprod-today.pantheonsite.io';
     const params = new URLSearchParams({
@@ -65,9 +101,9 @@
       'filter[status][value]': '1'
     });
 
-    jsonAPICreateFilterGroup(params, categoryFilter, 'category', 'field_ucb_article_categories');
-    jsonAPICreateFilterGroup(params, audienceFilter, 'audience', 'field_syndication_audience');
-    jsonAPICreateFilterGroup(params, unitFilter, 'unit', 'field_syndication_unit');
+    jsonAPICreateFilterGroup(params, filters.categories, 'category', 'field_ucb_article_categories');
+    jsonAPICreateFilterGroup(params, filters.audiences, 'audience', 'field_syndication_audience');
+    jsonAPICreateFilterGroup(params, filters.units, 'unit', 'field_syndication_unit');
 
     const response = await fetch(baseURL + '/jsonapi/node/ucb_article?' + params);
     const json = await response.json();
@@ -127,20 +163,18 @@
   /**
    * Fetches the articles using the legacy (Drupal 7) Today site API.
    *
-   * @param {number[]} categoryFilter
-   *   The category filter from the block configuration.
-   * @param {number[]} audienceFilter
-   *   The syndication audience filter from the block configuration.
-   * @param {number[]} unitFilter
-   *   The syndication unit filter from the block configuration.
-   * @param {string} renderStyle
-   *   The render style from the block configuration.
+   * @param {Filters} filters
+   *   The filters from the block configuration.
    *
    * @returns {{ articleHTML: ArticleHTML[]; readMoreURL: string; }}
    *   The resulting article HTML based on the render style, and the correct
    *   read more link URL for this version of the Today site.
    */
-  async function legacyLoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle) {
+  async function legacyLoadArticles(filters, renderStyle) {
+    const categoryFilter = filters.categories.enabled ? filters.categories.includes : [];
+    const audienceFilter = filters.audiences.enabled ? filters.audiences.includes : [];
+    const unitFilter = filters.units.enabled ? filters.units.includes : [];
+
     // Construct the URL
     // Build parameter strings, if respective filter array is not empty. Each
     // array contains ID's and builds each section of the filter piece
@@ -253,15 +287,8 @@
       this.renderLoader(true);
 
       let renderStyle = this.getAttribute('display');
-      const dataFilters = this.getAttribute('filters');
+      const filters = JSON.parse(this.getAttribute('filters'));
       const itemCount = parseInt(this.getAttribute('count')) + 3;
-      const dataFiltersJSON = JSON.parse(dataFilters);
-
-      // Only a 0 in the array means no filters selected, if array only
-      // contains a 0, remove it and set an empty array.
-      const categoryFilter = dataFiltersJSON.categories.filter(id => id != 0);
-      const audienceFilter = dataFiltersJSON.audiences.filter(id => id != 0);
-      const unitFilter = dataFiltersJSON.units.filter(id => id != 0);
 
       // Fetch final URL, render in requested renderStyle
       /*
@@ -273,12 +300,12 @@
        */
       let data;
       try {
-        data = await jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount);
+        data = await jsonAPILoadArticles(filters, renderStyle, itemCount);
       } catch (exception) {
         console.error(exception);
         console.warn('Call to JSON API failed, trying legacy API.');
         try {
-          data = await legacyLoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle);
+          data = await legacyLoadArticles(filters, renderStyle);
         } catch (exception2) {
           console.error(exception2);
           // If API error, render Read More @ Today link with Error Message
