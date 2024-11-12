@@ -37,7 +37,7 @@ function cuboulderTodayFilterFormLoader(drupal, baseURL, label, taxonomy, machin
     checkboxesElement = containerElement.querySelector('div'),
     // Stores the HTML of a checkbox to duplicate it later.
     checkboxElementHTML = checkboxesElement.innerHTML,
-    showAllElement = document.getElementById('cuboulder_today_filter_form_enable_' + machineName);
+    showAllElement = document.querySelector(`.cuboulder-today-filter-form-enable[data-filter=${machineName}]`);
   let loadRequested = false, loadComplete = false;
 
   /**

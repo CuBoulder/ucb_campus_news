@@ -235,7 +235,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
       '#title' => 'Filter by ' . $label,
       '#attributes' => [
         'class' => ['cuboulder-today-filter-form-enable'],
-        'id' => ['cuboulder_today_filter_form_enable_' . $filterName],
+        'data-filter' => $filterName,
       ],
       '#default_value' => $blockFilterConfigurationItem['enabled'],
     ];
