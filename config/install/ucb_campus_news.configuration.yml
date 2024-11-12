@@ -1,3 +1,4 @@
+baseURL: 'https://www.colorado.edu/today'
 filters:
   categories:
     label: Category

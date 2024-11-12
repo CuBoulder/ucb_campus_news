@@ -28,6 +28,7 @@ function _ucb_campus_news_update_config(array $configKeys) {
  */
 function ucb_campus_news_update_10201() {
   _ucb_campus_news_update_config([
+    'baseURL',
     'filters',
   ]);
 }

@@ -12,6 +12,36 @@
 (function (customElements) {
 
   /**
+   * Creates the path for the "read more" page given the filters.
+   *
+   * @param {number[]} categoryFilter
+   *   The category filter from the block configuration.
+   * @param {number[]} audienceFilter
+   *   The syndication audience filter from the block configuration.
+   * @param {number[]} unitFilter
+   *   The syndication unit filter from the block configuration.
+   *
+   * @returns {string}
+   *   The path for the "read more" page.
+   */
+  function readMorePath(categoryFilter, audienceFilter, unitFilter) {
+    const params = new URLSearchParams();
+
+    if (categoryFilter.length > 0) {
+      params.append('category', categoryFilter.join(' '));
+    }
+    if (audienceFilter.length > 0) {
+      params.append('audience', audienceFilter.join(' '));
+    }
+    if (unitFilter.length > 0) {
+      params.append('unit', audienceFilter.join(' '));
+    }
+
+    const paramsString = `${params}`;
+    return `/syndicate/article/read${paramsString ? `?${paramsString}` : ''}`;
+  }
+
+  /**
    * Creates a taxonomy filter group to filter by specific taxonomy terms.
    *
    * @param {URLSearchParams} params
@@ -36,6 +66,8 @@
   /**
    * Fetches the articles using the Today site JSON API.
    *
+   * @param {string} baseURL
+   *   The base URL of the CU Boulder Today site.
    * @param {number[]} categoryFilter
    *   The category filter from the block configuration.
    * @param {number[]} audienceFilter
@@ -51,9 +83,7 @@
    *   The resulting article HTML based on the render style, and the correct
    *   read more link URL for this version of the Today site.
    */
-  async function jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount) {
-    // TODO: Change to production URL.
-    const baseURL = 'https://live-ucbprod-today.pantheonsite.io';
+  async function jsonAPILoadArticles(baseURL, categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount) {
     const params = new URLSearchParams({
       'include[node--ucb_article]': 'uid,title,created,field_ucb_article_thumbnail,field_ucb_article_summary',
       'include': 'field_ucb_article_thumbnail.field_media_image',
@@ -119,14 +149,15 @@
           created: new Date(article['attributes']['created'])
         };
       }),
-      // TODO: Update this once the D10 read more page is done.
-      readMoreURL: baseURL
+      readMoreURL: baseURL + readMorePath(categoryFilter, audienceFilter, unitFilter)
     };
   }
 
   /**
    * Fetches the articles using the legacy (Drupal 7) Today site API.
    *
+   * @param {string} baseURL
+   *   The base URL of the CU Boulder Today site.
    * @param {number[]} categoryFilter
    *   The category filter from the block configuration.
    * @param {number[]} audienceFilter
@@ -140,7 +171,7 @@
    *   The resulting article HTML based on the render style, and the correct
    *   read more link URL for this version of the Today site.
    */
-  async function legacyLoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle) {
+  async function legacyLoadArticles(baseURL, categoryFilter, audienceFilter, unitFilter, renderStyle) {
     // Construct the URL
     // Build parameter strings, if respective filter array is not empty. Each
     // array contains ID's and builds each section of the filter piece
@@ -149,7 +180,6 @@
     const audienceParam = audienceFilter.length === 0 ? '' : `audience=${audienceFilter.join('%2B')}`;
     const unitParam = unitFilter.length === 0 ? '' : `unit=${unitFilter.join('%2B')}`;
 
-    const baseURL = 'https://www.colorado.edu/today/syndicate/article';
     // Adds in filter parameters for API request
     let filterParams = '';
 
@@ -174,7 +204,7 @@
 
     // This condition enables grid mode to pull the wide thumbnails for
     // styling in grid mode, otherwise just grab thumbnails
-    let api = baseURL + filterParams;
+    let api = baseURL + '/syndicate/article' + filterParams;
     if (renderStyle === '1') {
       if (categoryParam == '' && audienceParam == '' && unitParam == '') {
         api += '?view_mode=grid';
@@ -212,7 +242,7 @@
 
     return {
       articleHTML: dataArr,
-      readMoreURL: 'https://www.colorado.edu/today/syndicate/article/read' + filterParams
+      readMoreURL: baseURL + '/syndicate/article/read' + filterParams
     };
   }
 
@@ -252,6 +282,7 @@
     async loadArticles() {
       this.renderLoader(true);
 
+      const baseURL = this.getAttribute('base-url');
       let renderStyle = this.getAttribute('display');
       const dataFilters = this.getAttribute('filters');
       const itemCount = parseInt(this.getAttribute('count')) + 3;
@@ -273,16 +304,16 @@
        */
       let data;
       try {
-        data = await jsonAPILoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount);
+        data = await jsonAPILoadArticles(baseURL, categoryFilter, audienceFilter, unitFilter, renderStyle, itemCount);
       } catch (exception) {
         console.error(exception);
         console.warn('Call to JSON API failed, trying legacy API.');
         try {
-          data = await legacyLoadArticles(categoryFilter, audienceFilter, unitFilter, renderStyle);
+          data = await legacyLoadArticles(baseURL, categoryFilter, audienceFilter, unitFilter, renderStyle);
         } catch (exception2) {
           console.error(exception2);
           // If API error, render Read More @ Today link with Error Message
-          this.renderLoadError();
+          this.renderLoadError(baseURL, categoryFilter, audienceFilter, unitFilter);
         }
       }
 
@@ -569,8 +600,17 @@
 
     /**
      * Renders an error if results failed to load due to an API error.
+     *
+     * @param {string} baseURL
+     *   The base URL of the CU Boulder Today site.
+     * @param {number[]} categoryFilter
+     *   The category filter from the block configuration.
+     * @param {number[]} audienceFilter
+     *   The syndication audience filter from the block configuration.
+     * @param {number[]} unitFilter
+     *   The syndication unit filter from the block configuration.
      */
-    renderLoadError() {
+    renderLoadError(baseURL, categoryFilter, audienceFilter, unitFilter) {
       const errorContainer = document.createElement('div');
       errorContainer.className = 'ucb-campus-news-error-container';
       errorContainer.innerHTML = '<p class="ucb-campus-news-error-message">'
@@ -584,7 +624,7 @@
       const readMoreLink = document.createElement('a');
       readMoreLink.className = 'ucb-campus-news-grid-link';
       // TODO: Update this once the D10 read more page is done.
-      readMoreLink.href = 'https://www.colorado.edu/today/syndicate/article/read';
+      readMoreLink.href = baseURL + readMorePath(categoryFilter, audienceFilter, unitFilter);
       readMoreLink.innerText = 'Read on CU Boulder Today';
 
       // Append

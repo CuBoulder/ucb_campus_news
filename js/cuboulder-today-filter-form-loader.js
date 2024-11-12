@@ -20,6 +20,8 @@
  *
  * @param {Drupal} drupal
  *   The Drupal JavaScript API.
+ * @param {string} baseURL
+ *   The base URL of the CU Boulder Today site.
  * @param {string} label
  *   The display label of the filter.
  * @param {string} taxonomy
@@ -29,10 +31,10 @@
  * @param {FilterConfiguration} configuration
  *   The configuration of the filter.
  */
-function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, configuration) {
+function cuboulderTodayFilterFormLoader(drupal, baseURL, label, taxonomy, machineName, configuration) {
   const
     containerElement = document.getElementById('cuboulder_today_filter_form_container_' + machineName),
-    checkboxesElement = containerElement.getElementsByTagName('div')[0],
+    checkboxesElement = containerElement.querySelector('div'),
     // Stores the HTML of a checkbox to duplicate it later.
     checkboxElementHTML = checkboxesElement.innerHTML,
     showAllElement = document.getElementById('cuboulder_today_filter_form_enable_' + machineName);
@@ -86,35 +88,62 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    *   The node of the tree at the current level.
    * @param {HTMLElement} parentElement
    *   The HTML element to place the checkbox into.
-   * @param {boolean} parentSelected
-   *   Whether or not the parent checkbox is selected (if applicable).
    * @param {string} trail
    *   The trail followed.
+   *
+   * @returns { boolean[] }
+   *   Whether or not this checkbox and all its children are selected
+   *   (checked), whether or not this checkbox is indeterminate.
    */
-  function displayTree(node, parentElement, parentSelected, trail) {
+  function displayTree(node, parentElement, trail) {
     trail += '-' + node.id;
+
     const
       container = node.formElement = document.createElement('div'),
       checkboxHTML = checkboxElementHTML.replace(/cuboulder_today_filter_loading|cuboulder-today-filter-loading/g, trail),
       includes = configuration.includes,
-      isSelected = includes.indexOf(node.id) != -1;
+      included = includes.indexOf(node.id) != -1;
+    let isSelected = included;
+    let isIndeterminate = false;
+
     container.className = 'cuboulder-today-filter-form-options ' + checkboxesElement.className;
     container.innerHTML = checkboxHTML;
     const checkbox = container.querySelector('input[type="checkbox"]'), label = container.querySelector('label');
     label.innerText = node.name;
-    if (isSelected || parentSelected) {
-      checkbox.setAttribute('checked', 'checked');
-    }
+
+    // Checks or unchecks all child checkboxes automatically when checking or
+    // unchecking the parent checkbox.
     checkbox.addEventListener('change', event => {
       if (event.currentTarget.checked) {
         checkAllChildren(node);
       } else {
-        uncheckAllParents(node);
         uncheckAllChildren(node);
       }
+      uncheckAllParents(node);
     });
-    node.children.forEach(node => displayTree(node, container, parentSelected || isSelected, trail));
+
+    // Displays all child checkboxes if this checkbox is a parent with
+    // children.
+    node.children.forEach(node => {
+      const childStatus = displayTree(node, container, trail);
+      isSelected = isSelected && childStatus[0];
+      isIndeterminate = isIndeterminate || childStatus[0] || childStatus[1];
+    });
+
+    if (!isSelected && !isIndeterminate && included) {
+      // The parent term is in the filter includes and none of the children
+      // are. This is a state common from versions of Campus News before 2.0.
+      isIndeterminate = true;
+    }
+
+    // Verifies if this checkbox, and all its child checkboxes are checked. If
+    // so, checks this checkbox.
+    checkbox.checked = isSelected;
+    checkbox.indeterminate = isIndeterminate;
+
     parentElement.appendChild(container);
+
+    return [isSelected, isIndeterminate];
   }
 
   /**
@@ -126,7 +155,9 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
   function checkNode(node) {
     const formElement = node.formElement;
     if (formElement) {
-      node.formElement.querySelector('input[type="checkbox"]').checked = true;
+      const checkboxElement = formElement.querySelector('input[type="checkbox"]');
+      checkboxElement.checked = true;
+      checkboxElement.indeterminate = false;
     }
   }
 
@@ -139,9 +170,36 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
   function uncheckNode(node) {
     const formElement = node.formElement;
     if (formElement) {
-      node.formElement.querySelector('input[type="checkbox"]').checked = false;
+      const checkboxElement = formElement.querySelector('input[type="checkbox"]');
+      checkboxElement.checked = false;
+      checkboxElement.indeterminate = false;
     }
   }
+
+  /**
+   * Given a node, unchecks the associated checkbox and makes it
+   * indeterminate if at least one child is selected.
+   *
+   * @param {TaxonomyTreeNode} node
+   *   The node.
+   */
+  function uncheckNodeAndMakeIndeterminate(node) {
+    const formElement = node.formElement;
+    if (formElement) {
+      const checkboxElement = formElement.querySelector('input[type="checkbox"]');
+      checkboxElement.checked = false;
+      let indeterminate = false;
+      for (let i = 0; i < node.children.length; i++) {
+        const childCheckbox = node.children[i].formElement.querySelector('input[type="checkbox"]');
+        if (childCheckbox.checked || childCheckbox.indeterminate) {
+          indeterminate = true;
+          break;
+        }
+      }
+      checkboxElement.indeterminate = indeterminate;
+    }
+  }
+  
 
   /**
    * Given a node, unchecks the associated checkboxs of all its parent nodes.
@@ -151,7 +209,7 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    */
   function uncheckAllParents(node) {
     node.parents.forEach(parentNode => {
-      uncheckNode(parentNode);
+      uncheckNodeAndMakeIndeterminate(parentNode);
       uncheckAllParents(parentNode);
     });
   }
@@ -201,7 +259,7 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
       root = await legacyLoadTree();
     }
 
-    root.children.forEach(node => displayTree(node, checkboxesElement, false, '0'));
+    root.children.forEach(node => displayTree(node, checkboxesElement, '0'));
     containerElement.removeChild(loaderDiv);
     loadComplete = true;
   }
@@ -236,7 +294,7 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    */
   async function jsonAPILoadTree() {
     // TODO: Change to production URL.
-    const data = await jsonAPIFetchData('https://live-ucbprod-today.pantheonsite.io/jsonapi/taxonomy_term/' + taxonomy);
+    const data = await jsonAPIFetchData(baseURL + '/jsonapi/taxonomy_term/' + taxonomy);
 
     const root = createRootNode(), tidMap = new Map();
     tidMap.set(0, root);
@@ -281,7 +339,7 @@ function cuboulderTodayFilterFormLoader(drupal, label, taxonomy, machineName, co
    *   The root node of the taxonomy tree.
    */
   async function legacyLoadTree() {
-    const response = await fetch('https://www.colorado.edu/today/syndicate/article/options/' + taxonomy);
+    const response = await fetch(baseURL + 'syndicate/article/options/' + taxonomy);
     const data = await response.json();
 
     const root = createRootNode(), tidMap = new Map();

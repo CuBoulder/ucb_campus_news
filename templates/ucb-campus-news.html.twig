@@ -1,6 +1,7 @@
 {{ attach_library('ucb_campus_news/ucb-campus-news') }}
 <campus-news{{
   attributes
+    .setAttribute('base-url', globalConfig.baseURL)
     .setAttribute('display', data.display)
     .setAttribute('filters', data.filters|json_encode)
     .setAttribute('count', data.count)
