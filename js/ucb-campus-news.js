@@ -623,7 +623,6 @@
       readMoreContainer.className = 'ucb-campus-news-grid-link-container';
       const readMoreLink = document.createElement('a');
       readMoreLink.className = 'ucb-campus-news-grid-link';
-      // TODO: Update this once the D10 read more page is done.
       readMoreLink.href = baseURL + readMorePath(categoryFilter, audienceFilter, unitFilter);
       readMoreLink.innerText = 'Read on CU Boulder Today';
 
