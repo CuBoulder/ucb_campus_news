@@ -339,7 +339,7 @@ function cuboulderTodayFilterFormLoader(drupal, baseURL, label, taxonomy, machin
    *   The root node of the taxonomy tree.
    */
   async function legacyLoadTree() {
-    const response = await fetch(baseURL + 'syndicate/article/options/' + taxonomy);
+    const response = await fetch(baseURL + '/syndicate/article/options/' + taxonomy);
     const data = await response.json();
 
     const root = createRootNode(), tidMap = new Map();
