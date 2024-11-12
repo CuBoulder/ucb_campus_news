@@ -133,7 +133,7 @@ function cuboulderTodayFilterFormLoader(drupal, baseURL, label, taxonomy, machin
     if (isSelected) {
       // Can't be indeterminate if selected.
       isIndeterminate = false;
-    } else if (!isSelected && !isIndeterminate && included) {
+    } else if (!isIndeterminate && included) {
       // The parent term is in the filter includes and none of the children
       // are. This is a state common from versions of Campus News before 2.0.
       isIndeterminate = true;
