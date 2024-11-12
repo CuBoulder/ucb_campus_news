@@ -293,7 +293,6 @@ function cuboulderTodayFilterFormLoader(drupal, baseURL, label, taxonomy, machin
    *   The root node of the taxonomy tree.
    */
   async function jsonAPILoadTree() {
-    // TODO: Change to production URL.
     const data = await jsonAPIFetchData(baseURL + '/jsonapi/taxonomy_term/' + taxonomy);
 
     const root = createRootNode(), tidMap = new Map();
