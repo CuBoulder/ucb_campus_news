@@ -1,13 +1,22 @@
-# CU Boulder Default Content
+# CU Boulder Campus News
 
 All notable changes to this project will be documented in this file.
 
-Repo : [GitHub Repository](https://github.com/CuBoulder/ucb_default_content)
+Repo : [GitHub Repository](https://github.com/CuBoulder/ucb_campus_news)
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+- ### Adds support for the Drupal 10 version of CU Boulder Today (v2.0)
+  This is a major update to the CU Boulder Campus News module. This update:
+  
+  - [new] Adds support for the Drupal 10 version of CU Boulder Today by calling the JSON API. If the call to the JSON API fails, Campus News block features can still fall back to using the legacy (Drupal 7) API. Resolves CuBoulder/ucb_campus_news#12
+  - [bug, severity:minor] Fixes checkboxes not hiding underneath filters when "Filter by x" is unchecked. Resolves CuBoulder/ucb_campus_news#15
+  
+  Technical information: This update contains an update hook.
+---
 
 ## [pre-d10] - 2024-11-13
 

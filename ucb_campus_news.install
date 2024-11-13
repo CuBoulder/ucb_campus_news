@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * @file
+ * Contains update hooks used by the CU Boulder Campus News module.
+ */
+
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Updates the configuration.
+ *
+ * @param string[] $configKeys
+ *   The configuration to update.
+ */
+function _ucb_campus_news_update_config(array $configKeys) {
+  $modulePath = Drupal::getContainer()->get('extension.path.resolver')->getPath('module', 'ucb_campus_news');
+  $configYaml = Yaml::parse(file_get_contents($modulePath . '/config/install/ucb_campus_news.configuration.yml'));
+  $configEditable = \Drupal::configFactory()->getEditable('ucb_campus_news.configuration');
+  foreach ($configKeys as $configKey) {
+    $configEditable->set($configKey, $configYaml[$configKey]);
+  }
+  $configEditable->save();
+}
+
+/**
+ * Updates configuration to work with JSON API on the migrated Today site.
+ */
+function ucb_campus_news_update_10201() {
+  _ucb_campus_news_update_config([
+    'baseURL',
+    'filters',
+  ]);
+}

@@ -1,16 +1,14 @@
-siteURI: 'https://www.colorado.edu/today/syndicate/article/read'
-baseURI: 'https://www.colorado.edu/today/syndicate/article'
-path: '/'
+baseURL: 'https://www.colorado.edu/today'
 filters:
   categories:
-    label: 'Category'
-    path: '/options/category'
+    label: Category
+    taxonomy: category
   audiences:
-    label: 'Audience'
-    path: '/options/syndication_audience'
+    label: Audience
+    taxonomy: syndication_audience
   units:
-    label: 'Unit'
-    path: '/options/syndication_unit'
+    label: Unit
+    taxonomy: syndication_unit
 filterIncludeLimit: 128
 display:
   label: Display
