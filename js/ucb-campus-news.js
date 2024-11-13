@@ -379,7 +379,9 @@
      */
     renderTeaser(data, readMoreURL, itemCount) {
       // Iterate through response object
-      data.forEach(article => {
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
+
         // Date conversion
         const fullDate = article.created;
         const month = fullDate.toLocaleDateString('en-us', { month: 'short' });
@@ -398,7 +400,7 @@
 
         // Append
         this.appendChild(articleContainer);
-      });
+      }
 
       // After articles, create Read More link
       const readMoreContainer = document.createElement('div');
@@ -428,7 +430,8 @@
       const gridContainer = document.createElement('div');
       gridContainer.className = 'row';
       // Iterate
-      data.forEach(article => {
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
         // Create article container
         const articleContainer = document.createElement('div');
         articleContainer.className = 'campus-news-article-grid col-sm-12 col-md-6 col-lg-4';
@@ -445,7 +448,7 @@
           const absoluteURL = `https://www.colorado.edu/today/${relativeURL}`;
           moreLinkElement.href = absoluteURL;
         }
-      });
+      }
       // Append grid
       this.appendChild(gridContainer);
 
@@ -475,14 +478,15 @@
      */
     renderTitle(data, readMoreURL, itemCount) {
       // Iterate
-      data.forEach(article => {
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
         // Create article container
         const articleContainer = document.createElement('div');
         articleContainer.className = 'ucb-campus-news-title-only';
         articleContainer.innerHTML += article.title;
         // Append
         this.appendChild(articleContainer);
-      });
+      }
       const readMoreContainer = document.createElement('div');
       readMoreContainer.className = 'ucb-campus-news-link-container';
       // After articles, create Read More link
@@ -510,7 +514,8 @@
      */
     renderTitleThumbnail(data, readMoreURL, itemCount) {
       // Iterate
-      data.forEach(article => {
+      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
+        const article = data[i];
         // Create article container
         const articleContainer = document.createElement('div');
         articleContainer.className = 'ucb-campus-news-title-thumbnail-only d-flex';
@@ -519,7 +524,7 @@
 
         // Append
         this.appendChild(articleContainer);
-      });
+      }
 
       const readMoreContainer = document.createElement('div');
       readMoreContainer.className = 'ucb-campus-news-link-container';
