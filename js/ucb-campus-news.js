@@ -37,8 +37,8 @@
       params.append('unit', audienceFilter.join(' '));
     }
 
-    const paramsString = `${params}`;
-    return `/syndicate/article/read${paramsString ? `?${paramsString}` : ''}`;
+    const paramsString = params.toString();
+    return `/syndicate${paramsString ? `?${paramsString}` : ''}`;
   }
 
   /**
@@ -238,7 +238,8 @@
     });
 
     dataArr.sort((a, b) =>
-      parseFloat(b.created.getMilliseconds()) - parseFloat(a.created.getMilliseconds()));
+      parseFloat(b.created.getMilliseconds()) - parseFloat(a.created.getMilliseconds())
+    );
 
     return {
       articleHTML: dataArr,
@@ -378,9 +379,7 @@
      */
     renderTeaser(data, readMoreURL, itemCount) {
       // Iterate through response object
-      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
-        const article = data[i];
-
+      data.forEach(article => {
         // Date conversion
         const fullDate = article.created;
         const month = fullDate.toLocaleDateString('en-us', { month: 'short' });
@@ -399,7 +398,7 @@
 
         // Append
         this.appendChild(articleContainer);
-      }
+      });
 
       // After articles, create Read More link
       const readMoreContainer = document.createElement('div');
@@ -429,8 +428,7 @@
       const gridContainer = document.createElement('div');
       gridContainer.className = 'row';
       // Iterate
-      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
-        const article = data[i];
+      data.forEach(article => {
         // Create article container
         const articleContainer = document.createElement('div');
         articleContainer.className = 'campus-news-article-grid col-sm-12 col-md-6 col-lg-4';
@@ -447,7 +445,7 @@
           const absoluteURL = `https://www.colorado.edu/today/${relativeURL}`;
           moreLinkElement.href = absoluteURL;
         }
-      }
+      });
       // Append grid
       this.appendChild(gridContainer);
 
@@ -477,15 +475,14 @@
      */
     renderTitle(data, readMoreURL, itemCount) {
       // Iterate
-      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
-        const article = data[i];
+      data.forEach(article => {
         // Create article container
         const articleContainer = document.createElement('div');
         articleContainer.className = 'ucb-campus-news-title-only';
         articleContainer.innerHTML += article.title;
         // Append
         this.appendChild(articleContainer);
-      }
+      });
       const readMoreContainer = document.createElement('div');
       readMoreContainer.className = 'ucb-campus-news-link-container';
       // After articles, create Read More link
@@ -513,8 +510,7 @@
      */
     renderTitleThumbnail(data, readMoreURL, itemCount) {
       // Iterate
-      for (let i = 0; i < Math.min(itemCount, data.length); i++) {
-        const article = data[i];
+      data.forEach(article => {
         // Create article container
         const articleContainer = document.createElement('div');
         articleContainer.className = 'ucb-campus-news-title-thumbnail-only d-flex';
@@ -523,7 +519,7 @@
 
         // Append
         this.appendChild(articleContainer);
-      }
+      });
 
       const readMoreContainer = document.createElement('div');
       readMoreContainer.className = 'ucb-campus-news-link-container';
@@ -558,7 +554,7 @@
 
         // Render number specified by user
         // First pass generate the feature block, setup the containers
-        if (this.children.length - 1 == 0) {
+        if (i == 0) {
           // Create article container
           const featureContainer = document.createElement('div');
           featureContainer.className = 'campus-news-article-feature col-lg-8 col-md-8 col-sm-8 col-xs-12';
