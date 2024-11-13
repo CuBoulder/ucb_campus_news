@@ -34,7 +34,7 @@
       params.append('audience', audienceFilter.join(' '));
     }
     if (unitFilter.length > 0) {
-      params.append('unit', audienceFilter.join(' '));
+      params.append('unit', unitFilter.join(' '));
     }
 
     const paramsString = params.toString();
