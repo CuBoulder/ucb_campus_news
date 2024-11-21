@@ -237,9 +237,7 @@
       };
     });
 
-    dataArr.sort((a, b) =>
-      parseFloat(b.created.getMilliseconds()) - parseFloat(a.created.getMilliseconds())
-    );
+    dataArr.sort((a, b) => b.created - a.created);
 
     return {
       articleHTML: dataArr,
