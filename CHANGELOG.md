@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- ### Fixes legacy (Drupal 7) Today site API article sorting
+  An issue existed where articles coming from the legacy (Drupal 7) Today site API weren't getting sorted correctly. This update resolves the issue.
+  
+  [bug] Resolves CuBoulder/ucb_campus_news#18
+---
+
 - ### Adds support for the Drupal 10 version of CU Boulder Today (v2.0)
   This is a major update to the CU Boulder Campus News module. This update:
   
