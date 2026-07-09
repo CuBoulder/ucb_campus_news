@@ -25,6 +25,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInterface {
 
   /**
+   * The default text for the more articles link.
+   */
+  private const DEFAULT_READ_MORE_LINK_TEXT = 'Read more at CU Boulder Today';
+
+  /**
    * Contains the configuration parameters for this module.
    *
    * @var \Drupal\Core\Config\ImmutableConfig
@@ -97,6 +102,7 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
       'display' => $blockConfiguration['display'],
       'count' => $blockConfiguration['count'],
     ];
+    $buildArray['#readMoreLinkText'] = $this->getReadMoreLinkText();
     $buildArray['#theme'] = 'ucb_campus_news';
     return $buildArray;
   }
@@ -115,6 +121,12 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
     $buildArray = [];
     $this->addConfigSelectToForm($buildArray, 'display');
     $this->addConfigSelectToForm($buildArray, 'count');
+    $buildArray['readMoreLinkText'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('More articles link text'),
+      '#description' => $this->t('Text for the link to more articles on CU Boulder Today. Leave blank to hide the link.'),
+      '#default_value' => $this->getReadMoreLinkText(),
+    ];
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
       $this->addFilterToForm($buildArray, $moduleFilterConfigurationItem['label'], $moduleFilterConfigurationItem['taxonomy'], $filterMachineName);
@@ -132,11 +144,11 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
     $form_state->clearErrors();
     $this->validateConfiguration('display', $form_state);
     $this->validateConfiguration('count', $form_state);
-    $formValues = $form_state->getValues()['tabs']['content'];
+    $formValues = $form_state->getValue(['tabs', 'content']) ?? [];
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     $filterIncludeLimit = $this->moduleConfiguration->get('filterIncludeLimit') + 1;
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
-      $filterFormValues = $formValues['filter_' . $filterMachineName];
+      $filterFormValues = $formValues['filter_' . $filterMachineName] ?? [];
       $includesProcessed = [];
       if ($filterFormValues['enable_filter']) {
         // Contains all the checked item trails for the filter, and possibly
@@ -191,9 +203,10 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
    * {@inheritdoc}
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
-    $formValues = $form_state->getValues()['tabs']['content'];
+    $formValues = $form_state->getValue(['tabs', 'content']) ?? [];
     $this->configuration['display'] = $formValues['display'];
     $this->configuration['count'] = $formValues['count'];
+    $this->setConfigurationValue('readMoreLinkText', trim((string) ($formValues['readMoreLinkText'] ?? '')));
     $moduleFilterConfiguration = $this->moduleConfiguration->get('filters');
     foreach ($moduleFilterConfiguration as $filterMachineName => $moduleFilterConfigurationItem) {
       $values = $formValues['filter_' . $filterMachineName];
@@ -289,6 +302,20 @@ class CampusNewsBlock extends StyledBlock implements ContainerFactoryPluginInter
       '#options' => $config['options'],
       '#default_value' => $this->getConfiguration()[$configMachineName],
     ];
+  }
+
+  /**
+   * Gets the configured more articles link text.
+   *
+   * @return string
+   *   The link text, or an empty string to hide the link.
+   */
+  private function getReadMoreLinkText() {
+    $blockConfiguration = $this->getConfiguration();
+    if (!array_key_exists('readMoreLinkText', $blockConfiguration)) {
+      return self::DEFAULT_READ_MORE_LINK_TEXT;
+    }
+    return $blockConfiguration['readMoreLinkText'];
   }
 
   /**

@@ -27,6 +27,7 @@ function ucb_campus_news_theme() {
       'variables' => [
         'globalConfig' => $globalConfigVariables,
         'data' => [],
+        'readMoreLinkText' => 'Read more at CU Boulder Today',
       ],
     ],
   ];

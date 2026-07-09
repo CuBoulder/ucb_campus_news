@@ -272,7 +272,31 @@
      */
     constructor() {
       super();
+    }
+
+    /**
+     * Initializes the element once it is connected to the document.
+     */
+    connectedCallback() {
+      if (this.hasLoadedArticles) {
+        return;
+      }
+      this.hasLoadedArticles = true;
+      this.readMoreLinkText = this.getReadMoreLinkText();
       this.loadArticles();
+    }
+
+    /**
+     * Gets the configured more articles link text for this block.
+     *
+     * @returns {string}
+     *   The link text, or an empty string to hide the link.
+     */
+    getReadMoreLinkText() {
+      if (!this.hasAttribute('read-more-link-text')) {
+        return 'Read more at CU Boulder Today';
+      }
+      return this.getAttribute('read-more-link-text');
     }
 
     /**
@@ -313,11 +337,12 @@
           console.error(exception2);
           // If API error, render Read More @ Today link with Error Message
           this.renderLoadError(baseURL, categoryFilter, audienceFilter, unitFilter);
+          return;
         }
       }
 
       // Error - no data
-      if (data.articleHTML.length === 0) {
+      if (!data || data.articleHTML.length === 0) {
         renderStyle = 'error';
       }
 
@@ -365,6 +390,42 @@
     }
 
     /**
+     * Appends a "read more" link if link text is configured.
+     *
+     * @param {HTMLElement} parent
+     *   The element to append the link to.
+     * @param {string} readMoreURL
+     *   The correct read more link URL for this version of the Today site.
+     * @param {string} containerClass
+     *   The CSS class for the link container.
+     * @param {string} linkClass
+     *   The CSS class for the link.
+     * @param {boolean} inline
+     *   Whether to append the link directly without a container.
+     */
+    appendReadMoreLink(parent, readMoreURL, containerClass, linkClass, inline = false) {
+      const readMoreLinkText = this.readMoreLinkText ?? this.getReadMoreLinkText();
+      if (!readMoreLinkText) {
+        return;
+      }
+
+      const readMoreLink = document.createElement('a');
+      readMoreLink.className = linkClass;
+      readMoreLink.href = readMoreURL;
+      readMoreLink.innerText = readMoreLinkText;
+
+      if (inline) {
+        parent.appendChild(readMoreLink);
+        return;
+      }
+
+      const readMoreContainer = document.createElement('div');
+      readMoreContainer.className = containerClass;
+      readMoreContainer.appendChild(readMoreLink);
+      parent.appendChild(readMoreContainer);
+    }
+
+    /**
      * Renders this Campus News block based on the Teaser render style.
      *
      * @param {ArticleHTML[]} data
@@ -401,16 +462,7 @@
       }
 
       // After articles, create Read More link
-      const readMoreContainer = document.createElement('div');
-      readMoreContainer.className = 'ucb-campus-news-link-container';
-      const readMoreLink = document.createElement('a');
-      readMoreLink.className = 'ucb-campus-news-link';
-      readMoreLink.href = readMoreURL;
-      readMoreLink.innerText = 'Read more at CU Boulder Today';
-      readMoreContainer.appendChild(readMoreLink);
-
-      // Append
-      this.appendChild(readMoreContainer);
+      this.appendReadMoreLink(this, readMoreURL, 'ucb-campus-news-link-container', 'ucb-campus-news-link');
     }
 
     /**
@@ -451,16 +503,7 @@
       this.appendChild(gridContainer);
 
       // After articles, create Read More link (Grid style)
-      const readMoreContainer = document.createElement('div');
-      readMoreContainer.className = 'ucb-campus-news-grid-link-container';
-      const readMoreLink = document.createElement('a');
-      readMoreLink.className = 'ucb-campus-news-grid-link';
-      readMoreLink.href = readMoreURL;
-      readMoreLink.innerText = 'Read more at CU Boulder Today';
-
-      // Append
-      readMoreContainer.appendChild(readMoreLink);
-      this.appendChild(readMoreContainer);
+      this.appendReadMoreLink(this, readMoreURL, 'ucb-campus-news-grid-link-container', 'ucb-campus-news-grid-link');
     }
 
     /**
@@ -485,17 +528,8 @@
         // Append
         this.appendChild(articleContainer);
       }
-      const readMoreContainer = document.createElement('div');
-      readMoreContainer.className = 'ucb-campus-news-link-container';
       // After articles, create Read More link
-      const readMoreLink = document.createElement('a');
-      readMoreLink.className = 'ucb-campus-news-link';
-      readMoreLink.href = readMoreURL;
-      readMoreLink.innerText = 'Read more at CU Boulder Today';
-      readMoreContainer.appendChild(readMoreLink);
-
-      // Append
-      this.appendChild(readMoreContainer);
+      this.appendReadMoreLink(this, readMoreURL, 'ucb-campus-news-link-container', 'ucb-campus-news-link');
     }
 
     /**
@@ -524,17 +558,8 @@
         this.appendChild(articleContainer);
       }
 
-      const readMoreContainer = document.createElement('div');
-      readMoreContainer.className = 'ucb-campus-news-link-container';
       // After articles, create Read More link
-      const readMoreLink = document.createElement('a');
-      readMoreLink.className = 'ucb-campus-news-link';
-      readMoreLink.href = readMoreURL;
-      readMoreLink.innerText = 'Read more at CU Boulder Today';
-      readMoreContainer.appendChild(readMoreLink);
-
-      // Append
-      this.appendChild(readMoreContainer);
+      this.appendReadMoreLink(this, readMoreURL, 'ucb-campus-news-link-container', 'ucb-campus-news-link');
     }
 
     /**
@@ -566,13 +591,7 @@
           featureContainer.innerHTML += article.summary;
 
           // Create Button
-          const readMoreLink = document.createElement('a');
-          readMoreLink.className = 'ucb-campus-news-grid-link mt-5';
-          readMoreLink.href = readMoreURL;
-          readMoreLink.innerText = 'Read more at CU Boulder Today';
-
-          // Append
-          featureContainer.appendChild(readMoreLink);
+          this.appendReadMoreLink(featureContainer, readMoreURL, '', 'ucb-campus-news-grid-link mt-5', true);
 
           // Append
           featureBlockContainer.appendChild(featureContainer);
@@ -618,17 +637,13 @@
         + '</strong>'
         + '</p>';
 
-      const readMoreContainer = document.createElement('div');
-      readMoreContainer.className = 'ucb-campus-news-grid-link-container';
-      const readMoreLink = document.createElement('a');
-      readMoreLink.className = 'ucb-campus-news-grid-link';
-      readMoreLink.href = baseURL + readMorePath(categoryFilter, audienceFilter, unitFilter);
-      readMoreLink.innerText = 'Read on CU Boulder Today';
-
-      // Append
-      readMoreContainer.appendChild(readMoreLink);
       this.appendChild(errorContainer);
-      this.appendChild(readMoreContainer);
+      this.appendReadMoreLink(
+        this,
+        baseURL + readMorePath(categoryFilter, audienceFilter, unitFilter),
+        'ucb-campus-news-grid-link-container',
+        'ucb-campus-news-grid-link'
+      );
 
       this.renderLoader(false);
     }
