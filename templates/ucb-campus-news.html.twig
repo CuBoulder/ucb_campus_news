@@ -1,11 +1,11 @@
 {{ attach_library('ucb_campus_news/ucb-campus-news') }}
-<campus-news{{
-  attributes
-    .setAttribute('base-url', globalConfig.baseURL)
-    .setAttribute('display', data.display)
-    .setAttribute('filters', data.filters|json_encode)
-    .setAttribute('count', data.count)
-}}>
+<campus-news
+  base-url="{{ globalConfig.baseURL }}"
+  display="{{ data.display }}"
+  filters="{{ data.filters|json_encode|e('html_attr') }}"
+  count="{{ data.count }}"
+  read-more-link-text="{{ readMoreLinkText|e('html_attr') }}"
+>
   {# Loading message #}
   <div class="ucb-list-msg ucb-loading-data text-center">
     <i class="fa-solid fa-spinner fa-3x fa-pulse"></i>

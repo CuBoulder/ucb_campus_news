@@ -7,7 +7,7 @@ cuboulder_today_filter_form_loader:
       css/cuboulder-today-filter-form-display.css: {}
 
 ucb-campus-news:
-  version: 1.0
+  version: 1.2
   js:
     js/ucb-campus-news.js: {}
   css:
