@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- ### #23 - Handle pathing safely, if no path alias set on Article
+  Adds a safe fallback if no pathauto was set on an Article
+  
+  Resolves #23 
+---
+
 - ### Fixes legacy (Drupal 7) Today site API article sorting
   An issue existed where articles coming from the legacy (Drupal 7) Today site API weren't getting sorted correctly. This update resolves the issue.
   

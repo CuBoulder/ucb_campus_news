@@ -112,7 +112,11 @@
 
     return {
       articleHTML: json['data'].map(article => {
-        const articleURL = baseURL + safe(article['attributes']['path']['alias']);
+        // If no path alias set, use defaults
+        const path = article['attributes']['path']['alias']
+          ? article['attributes']['path']['alias']
+          : `/node/${article['attributes']['drupal_internal__nid']}`;
+        const articleURL = baseURL + safe(path);
         let articleThumbnailURL, articleThumbnailAlt;
         if (renderStyle !== '3' && mediaImages && files && article['relationships']['field_ucb_article_thumbnail']['data']) {
           // Article has a thumbnail image and the Title [only] render style
